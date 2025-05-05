@@ -64,28 +64,23 @@ def load_css():
 
 # API 키 설정 및 관리
 def setup_api():
-    # 환경 변수에서 API 키가 설정되어 있는지 확인
-    env_path = Path(__file__).parent / '.env'
-    if env_path.exists():
-        # .env 파일에서 직접 API 키 읽기
-        import re
-        with open(env_path, 'r') as f:
-            content = f.read()
-            # 정규식 패턴 수정 - 따옴표가 있거나 없는 경우 모두 처리
-            match = re.search(r'GEMINI_API_KEY\s*=\s*(?:"([^"]+)"|\'([^\']+)\'|([^\s"\']+))', content)
-            if match:
-                # 세 개의 그룹 중 매칭된 첫 번째 그룹 사용
-                api_key = match.group(1) or match.group(2) or match.group(3)
-                genai.configure(api_key=api_key)
-                # 글로벌 변수 업데이트
-                store_api_key(api_key)
-                st.toast("환경 변수에서 API 키를 불러왔습니다.", icon="🔑")
-            else:
-                st.error("환경 변수에서 API 키를 찾을 수 없습니다.")
+    # 먼저 환경 변수에서 API 키를 가져옵니다
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    
+    if api_key:
+        # 환경 변수에 API 키가 있으면 그것을 사용
+        genai.configure(api_key=api_key)
+        store_api_key(api_key)  # 전역 변수 업데이트
+        st.toast("환경 변수에서 API 키를 불러왔습니다.", icon="🔑")
     elif is_api_key_set():
+        # config에서 가져온 API 키가 있으면 사용
         genai.configure(api_key=GEMINI_API_KEY)
     else:
-        st.error("API 키가 설정되어 있지 않습니다. .env 파일을 확인해주세요.")
+        # 하드코딩된 백업 API 키 사용
+        backup_key = "AIzaSyDdx6biN2-jq3v3wjJkWt4UNoOxkBwwq-Q" 
+        genai.configure(api_key=backup_key)
+        store_api_key(backup_key)  # 전역 변수 업데이트
+        st.toast("백업 API 키를 사용합니다.", icon="🔑")
 
 # 사이드바 내비게이션 설정
 def setup_sidebar():

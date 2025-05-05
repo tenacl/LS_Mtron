@@ -55,8 +55,8 @@ sleep 2
 export PYTHONPATH="$PYTHONPATH:$(pwd)"
 echo -e "${YELLOW}PYTHONPATH 설정: $PYTHONPATH${NC}"
 
-# Google API 키 직접 환경 변수에 설정
-export GEMINI_API_KEY=$(grep GEMINI_API_KEY promptedu/.env | cut -d'=' -f2)
+# Google API 키 직접 환경 변수에 설정 - 따옴표와 공백 제거
+export GEMINI_API_KEY=$(grep GEMINI_API_KEY promptedu/.env | cut -d'=' -f2 | sed 's/[" ]//g')
 echo -e "${YELLOW}Gemini API 키가 환경 변수에 설정되었습니다.${NC}"
 
 # 필요한 Python 패키지 확인
