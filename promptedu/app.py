@@ -625,16 +625,6 @@ def show_prompt_generator(generator_type):
                                     st.code(generated_prompt, language="markdown")
                             except:
                                 st.code(generated_prompt, language="markdown")
-                        
-                        # 설명 부분 표시 코드 제거 (아래 부분을 주석 처리)
-                        # if explanation_block.strip():
-                        #     st.markdown(explanation_block)
-                        # elif not prompt_block.strip() and not raw_prompt:
-                        #     # 설명 부분을 찾지 못했을 경우 원본 그대로 표시
-                        #     st.markdown(generated_prompt)
-                        # else:
-                        #     # 설명이 없지만 프롬프트가 있는 경우 기본 설명 제공
-                        #     st.markdown("📌 **프롬프트 요소 설명**\n\n프롬프트 요소에 대한 설명을 생성할 수 없습니다.")
                     
                     # 복사 버튼
                     st.button("클립보드에 복사", key="copy_deepresearch_prompt", 
@@ -785,6 +775,10 @@ def show_prompt_generator(generator_type):
                 
                 if generated_prompt:
                     st.success("이미지 프롬프트가 생성되었습니다!")
+                    
+                    # 초기화
+                    prompt_block = ""
+                    raw_prompt = ""
                     
                     # 정리된 프롬프트가 있으면 코드 블록으로 표시
                     if prompt_block.strip():
@@ -966,6 +960,10 @@ def show_prompt_generator(generator_type):
                 
                 if generated_prompt:
                     st.success("영상 프롬프트가 생성되었습니다!")
+                    
+                    # 초기화
+                    prompt_block = ""
+                    raw_prompt = ""
                     
                     # 정리된 프롬프트가 있으면 코드 블록으로 표시
                     if prompt_block.strip():
