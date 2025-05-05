@@ -68,31 +68,19 @@ def setup_api():
     if is_api_key_set():
         genai.configure(api_key=GEMINI_API_KEY)
     else:
-        st.sidebar.warning("API 키가 설정되지 않았습니다.")
-        
-        # 사이드바에 API 키 입력 폼 추가
-        with st.sidebar.expander("API 키 설정", expanded=not is_api_key_set()):
-            api_key = st.text_input("Gemini API 키 입력", type="password")
-            if st.button("저장"):
-                if api_key:
-                    # API 키 저장 및 설정
-                    store_api_key(api_key)
-                    genai.configure(api_key=api_key)
-                    st.success("API 키가 저장되었습니다!")
-                    st.rerun()
-                else:
-                    st.error("유효한 API 키를 입력해주세요.")
+        # API 키가 설정되지 않았을 때 @static 값을 사용
+        static_api_key = "AIzaSyCnkbMnB2xGpYRGM-EIhDTfwFeVOYPPX9o"  # @static API 키
+        genai.configure(api_key=static_api_key)
+        # 글로벌 변수 업데이트
+        store_api_key(static_api_key)
+        st.toast("내장된 API 키를 사용합니다.", icon="🔑")
 
 # 사이드바 내비게이션 설정
 def setup_sidebar():
     st.sidebar.title(APP_NAME)
-    st.sidebar.subheader(APP_DESCRIPTION)
 
-    # 학습 트랙 옵션
-    st.sidebar.markdown("### 프롬프트 교육 플랫폼")
-    
     # 트랙 선택 섹션
-    st.sidebar.markdown("#### 트랙 선택")
+    st.sidebar.markdown("#### 프롬프트 셀프 학습")
     
     track_options = [
         ("🏠 홈", "home"),
@@ -170,9 +158,6 @@ def load_track_data(track_name):
 # Gemini API를 사용한 프롬프트 생성 함수
 def generate_prompt(track, topic, purpose=None, sources=None, format=None):
     try:
-        if not is_api_key_set():
-            return "API 키가 설정되지 않았습니다."
-        
         model = genai.GenerativeModel('gemini-1.5-pro')
         
         if track == "🎨 이미지 프롬프트" or track == "🖌️ 이미지 프롬프트 생성기":
@@ -218,9 +203,6 @@ def generate_prompt(track, topic, purpose=None, sources=None, format=None):
 # 프롬프트 피드백 생성 함수
 def generate_feedback(track, day, user_prompt):
     try:
-        if not is_api_key_set():
-            return "API 키가 설정되지 않았습니다."
-        
         model = genai.GenerativeModel('gemini-1.5-pro')
         
         # 트랙별 이름 추출
@@ -542,10 +524,6 @@ def show_prompt_generator(generator_type):
                 st.error("출처를 최소 1개 이상 선택해주세요.")
                 return
                 
-            if not is_api_key_set():
-                st.error("API 키가 설정되지 않았습니다. 사이드바에서 API 키를 설정해주세요.")
-                return
-                
             with st.spinner("프롬프트를 생성 중입니다..."):
                 # 선택된 출처들을 문자열로 변환
                 sources_text = ", ".join(st.session_state.selected_sources)
@@ -684,10 +662,6 @@ def show_prompt_generator(generator_type):
         if st.button("이미지 프롬프트 생성", key="generate_image_prompt"):
             if not topic:
                 st.error("주제/대상을 입력해주세요.")
-                return
-                
-            if not is_api_key_set():
-                st.error("API 키가 설정되지 않았습니다. 사이드바에서 API 키를 설정해주세요.")
                 return
                 
             with st.spinner("이미지 프롬프트를 생성 중입니다..."):
@@ -867,10 +841,6 @@ def show_prompt_generator(generator_type):
         if st.button("영상 프롬프트 생성", key="generate_video_prompt"):
             if not topic:
                 st.error("주제/장면을 입력해주세요.")
-                return
-                
-            if not is_api_key_set():
-                st.error("API 키가 설정되지 않았습니다. 사이드바에서 API 키를 설정해주세요.")
                 return
                 
             with st.spinner("영상 프롬프트를 생성 중입니다..."):
