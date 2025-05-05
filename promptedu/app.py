@@ -104,9 +104,10 @@ def setup_sidebar():
     ]
     
     track_selection = st.sidebar.radio(
-        "",
+        "트랙 선택",
         options=[option[0] for option in track_options],
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        key="track_selection_radio"
     )
     
     # 구분선 추가
@@ -122,16 +123,17 @@ def setup_sidebar():
     ]
     
     generator_selection = st.sidebar.radio(
-        "",
+        "프롬프트 생성기 선택",
         options=[option[0] for option in generator_options],
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        key="generator_selection_radio"
     )
     
     # 구분선 추가
     st.sidebar.markdown("---")
     
     # 제작자 정보
-    st.sidebar.markdown("👤 **만든사람** : 여행가J ([kwonjungsun.com](https://kwonjungsun.com))")
+    st.sidebar.markdown("👤 **만든사람** : 여행가J ([프로필](https://litt.ly/jkwon))")
     st.sidebar.markdown("📧 **관련 문의** : [스타트업실험실](https://www.startuplab.seoul.kr/)")
     
     # 선택된 옵션 반환
@@ -292,7 +294,7 @@ def show_home():
     
     # 제작자 정보 및 문의 링크 추가
     st.markdown("---")
-    st.markdown("👤 **만든사람** : 여행가J ([@jkwon](https://litt.ly/jkwon))")
+    st.markdown("👤 **만든사람** : 여행가J ([프로필](https://litt.ly/jkwon))")
     st.markdown("📧 **관련 문의** : [스타트업실험실](https://www.startuplab.seoul.kr/)")
 
 # 트랙별 페이지 표시
