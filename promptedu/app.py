@@ -86,42 +86,28 @@ def setup_api():
 def setup_sidebar():
     st.sidebar.title(APP_NAME)
 
-    # 트랙 선택 섹션
-    st.sidebar.markdown("#### 프롬프트 셀프 학습")
+    # 모든 옵션을 하나의 리스트로 통합
+    st.sidebar.markdown("#### 메뉴 선택")
     
-    track_options = [
+    # 통합된 옵션 리스트 - 트랙과 생성기 모두 포함
+    all_options = [
         ("🏠 홈", "home"),
         ("🟢 초급 프롬프트", "beginner"),
         ("🟡 중급 프롬프트", "intermediate"),
         ("🔎 딥리서치 프롬프트", "deepresearch"),
         ("🎨 이미지 프롬프트", "image"),
-        ("🎬 영상 (Sora) 프롬프트", "video")
-    ]
-    
-    track_selection = st.sidebar.radio(
-        "트랙 선택",
-        options=[option[0] for option in track_options],
-        label_visibility="collapsed",
-        key="track_selection_radio"
-    )
-    
-    # 구분선 추가
-    st.sidebar.markdown("---")
-    
-    # 프롬프트 생성기 섹션
-    st.sidebar.markdown("#### 🛠️ 프롬프트 생성기")
-    
-    generator_options = [
+        ("🎬 영상 (Sora) 프롬프트", "video"),
+        ("――――――――", "divider"),  # 구분선 역할의 항목 추가
         ("🔧 딥리서치 프롬프트 생성기", "deep_generator"),
         ("🖌️ 이미지 프롬프트 생성기", "image_generator"),
         ("🎥 영상 (Sora) 프롬프트 생성기", "video_generator")
     ]
     
-    generator_selection = st.sidebar.radio(
-        "프롬프트 생성기 선택",
-        options=[option[0] for option in generator_options],
+    selection = st.sidebar.radio(
+        "메뉴 선택",
+        options=[option[0] for option in all_options],
         label_visibility="collapsed",
-        key="generator_selection_radio"
+        key="menu_selection_radio"
     )
     
     # 구분선 추가
@@ -131,11 +117,11 @@ def setup_sidebar():
     st.sidebar.markdown("👤 **만든사람** : 여행가J ([프로필](https://litt.ly/jkwon))")
     st.sidebar.markdown("📧 **관련 문의** : [스타트업실험실](https://www.startuplab.seoul.kr/)")
     
-    # 선택된 옵션 반환
-    if track_selection != "🏠 홈" and track_selection in [option[0] for option in track_options]:
-        return track_selection
-    else:
-        return generator_selection
+    # 구분선 선택 시 홈으로 리다이렉트
+    if selection == "――――――――":
+        return "🏠 홈"
+        
+    return selection
 
 # 훈련 데이터 로드 함수
 def load_track_data(track_name):
@@ -262,26 +248,28 @@ def show_home():
     
     친절한 프롬프트 트레이너J는 다양한 AI 도구를 효과적으로 활용하기 위한 프롬프트 작성 능력을 훈련하는 플랫폼입니다.
     
-    #### 제공되는 트랙:
+    #### 📚 학습 트랙:
     - 🟢 **초급 프롬프트**: 프롬프트의 기본 구조와 작성법 이해
     - 🟡 **중급 프롬프트**: 조건, 반복, 포맷 제어 등 고급 프롬프트 능력 강화
     - 🔎 **딥리서치 프롬프트**: LLM을 활용한 심층 정보 수집 능력 향상
     - 🎨 **이미지 프롬프트**: MidJourney, DALL·E 등을 위한 시각 묘사 프롬프트
     - 🎬 **영상 (Sora) 프롬프트**: Runway, Sora, Pika 등을 위한 영상 프롬프트
-    - 🛠️ **딥리서치 프롬프트 생성기**: 다양한 목적에 맞는 프롬프트 자동 생성 도구
     
-    사이드바에서 원하는 트랙을 선택하고, 프롬프트 생성기를 사용해보세요!
+    #### 🛠️ 프롬프트 생성기:
+    - 🔧 **딥리서치 프롬프트 생성기**: 복잡한 리서치 프롬프트를 쉽게 생성
+    - 🖌️ **이미지 프롬프트 생성기**: MidJourney, DALL·E용 이미지 프롬프트 생성
+    - 🎥 **영상 프롬프트 생성기**: Sora, Runway 등을 위한 영상 프롬프트 생성
     """)
     
     # 설명 문구 및 시작 버튼
     st.markdown("""
     <div class="track-card">
-        <h3>🚀 30일 프롬프트 훈련 시작하기</h3>
-        <p>사이드바에서 원하는 트랙을 선택하고 프롬프트 능력을 향상시켜보세요!</p>
+        <h3>🚀 시작하기</h3>
+        <p>왼쪽 사이드바에서 원하는 트랙이나 생성기를 선택하여 시작하세요!</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # 제작자 정보 및 문의 링크 추가
+    # 제작자 정보
     st.markdown("---")
     st.markdown("👤 **만든사람** : 여행가J ([프로필](https://litt.ly/jkwon))")
     st.markdown("📧 **관련 문의** : [스타트업실험실](https://www.startuplab.seoul.kr/)")
@@ -395,7 +383,14 @@ def show_track_page(track_name):
                         st.markdown(f"- {task}")
         
         with tab2:
-            show_prompt_generator("🔧 딥리서치 프롬프트 생성기")
+            # 트랙 이름에 따라 적절한 생성기 선택
+            generator_mapping = {
+                "🔎 딥리서치 프롬프트": "🔧 딥리서치 프롬프트 생성기",
+                "🎨 이미지 프롬프트": "🖌️ 이미지 프롬프트 생성기",
+                "🎬 영상 (Sora) 프롬프트": "🎥 영상 (Sora) 프롬프트 생성기"
+            }
+            generator_to_show = generator_mapping.get(track_name, "🔧 딥리서치 프롬프트 생성기")
+            show_prompt_generator(generator_to_show)
 
 # 프롬프트 생성기만 표시하는 함수
 def show_prompt_generator(generator_type):
@@ -949,14 +944,10 @@ def main():
     selected_option = setup_sidebar()
     
     # 선택된 옵션에 따라 페이지 표시
-    if selected_option == "🏠 홈":
+    if selected_option == "🏠 홈" or selected_option == "――――――――":
         show_home()
-    elif selected_option == "🔧 딥리서치 프롬프트 생성기":
-        show_prompt_generator("🔧 딥리서치 프롬프트 생성기")
-    elif selected_option == "🖌️ 이미지 프롬프트 생성기":
-        show_prompt_generator("🖌️ 이미지 프롬프트 생성기")
-    elif selected_option == "🎥 영상 (Sora) 프롬프트 생성기":
-        show_prompt_generator("🎥 영상 (Sora) 프롬프트 생성기")
+    elif selected_option in ["🔧 딥리서치 프롬프트 생성기", "🖌️ 이미지 프롬프트 생성기", "🎥 영상 (Sora) 프롬프트 생성기"]:
+        show_prompt_generator(selected_option)
     else:
         show_track_page(selected_option)
 
