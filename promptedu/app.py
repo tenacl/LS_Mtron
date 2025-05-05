@@ -71,9 +71,11 @@ def setup_api():
         import re
         with open(env_path, 'r') as f:
             content = f.read()
-            match = re.search(r'GEMINI_API_KEY\s*=\s*"([^"]+)"', content)
+            # 정규식 패턴 수정 - 따옴표가 있거나 없는 경우 모두 처리
+            match = re.search(r'GEMINI_API_KEY\s*=\s*(?:"([^"]+)"|\'([^\']+)\'|([^\s"\']+))', content)
             if match:
-                api_key = match.group(1)
+                # 세 개의 그룹 중 매칭된 첫 번째 그룹 사용
+                api_key = match.group(1) or match.group(2) or match.group(3)
                 genai.configure(api_key=api_key)
                 # 글로벌 변수 업데이트
                 store_api_key(api_key)
