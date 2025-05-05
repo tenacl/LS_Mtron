@@ -65,15 +65,25 @@ def load_css():
 # API 키 설정 및 관리
 def setup_api():
     # 환경 변수에서 API 키가 설정되어 있는지 확인
-    if is_api_key_set():
+    env_path = Path(__file__).parent / '.env'
+    if env_path.exists():
+        # .env 파일에서 직접 API 키 읽기
+        import re
+        with open(env_path, 'r') as f:
+            content = f.read()
+            match = re.search(r'GEMINI_API_KEY\s*=\s*"([^"]+)"', content)
+            if match:
+                api_key = match.group(1)
+                genai.configure(api_key=api_key)
+                # 글로벌 변수 업데이트
+                store_api_key(api_key)
+                st.toast("환경 변수에서 API 키를 불러왔습니다.", icon="🔑")
+            else:
+                st.error("환경 변수에서 API 키를 찾을 수 없습니다.")
+    elif is_api_key_set():
         genai.configure(api_key=GEMINI_API_KEY)
     else:
-        # API 키가 설정되지 않았을 때 @static 값을 사용
-        static_api_key = "AIzaSyCnkbMnB2xGpYRGM-EIhDTfwFeVOYPPX9o"  # @static API 키
-        genai.configure(api_key=static_api_key)
-        # 글로벌 변수 업데이트
-        store_api_key(static_api_key)
-        st.toast("내장된 API 키를 사용합니다.", icon="🔑")
+        st.error("API 키가 설정되어 있지 않습니다. .env 파일을 확인해주세요.")
 
 # 사이드바 내비게이션 설정
 def setup_sidebar():
@@ -533,10 +543,16 @@ def show_prompt_generator(generator_type):
                 if generated_prompt:
                     st.success("프롬프트가 생성되었습니다!")
                     
-                    # 결과 표시 (코드 블록으로 표시)
+                    # 결과 표시 방식 변경 - 코드 블록으로 표시는 프롬프트 부분만
                     prompt_container = st.container(border=True)
                     with prompt_container:
                         st.markdown(f"### 생성된 프롬프트:")
+                        
+                        # 프롬프트 텍스트를 분석하여 **프롬프트:** 부분만 코드 블록으로 표시
+                        import re
+                        
+                        # 딥리서치 프롬프트는 직접적인 프롬프트 라벨이 없으므로
+                        # 전체를 코드 블록으로 처리
                         st.code(generated_prompt, language="markdown")
                     
                     # 복사 버튼
@@ -689,11 +705,41 @@ def show_prompt_generator(generator_type):
                 if generated_prompt:
                     st.success("이미지 프롬프트가 생성되었습니다!")
                     
-                    # 결과 표시 (코드 블록으로 표시)
+                    # 결과 표시 방식 변경 - 코드 블록으로 표시는 프롬프트 부분만
                     prompt_container = st.container(border=True)
                     with prompt_container:
                         st.markdown(f"### 생성된 이미지 프롬프트:")
-                        st.code(generated_prompt, language="markdown")
+                        
+                        # 프롬프트 텍스트를 분석하여 **프롬프트:** 부분만 코드 블록으로 표시
+                        import re
+                        
+                        # 전체 텍스트는 보통 텍스트로 표시
+                        lines = generated_prompt.split('\n')
+                        formatted_lines = []
+                        prompt_part = ""
+                        in_prompt_section = False
+                        
+                        for line in lines:
+                            # **프롬프트:** 부분 감지
+                            if '**프롬프트:**' in line or '*프롬프트:*' in line:
+                                in_prompt_section = True
+                                # 프롬프트 라벨 부분은 일반 텍스트로
+                                formatted_lines.append(line)
+                                continue
+                            
+                            # 프롬프트 섹션인 경우 해당 텍스트 수집
+                            if in_prompt_section:
+                                prompt_part += line + "\n"
+                            else:
+                                formatted_lines.append(line)
+                        
+                        # 일반 텍스트 부분 먼저 표시
+                        for line in formatted_lines:
+                            st.markdown(line)
+                        
+                        # 프롬프트 부분만 코드 블록으로 표시
+                        if prompt_part.strip():
+                            st.code(prompt_part.strip(), language="markdown")
                     
                     # 복사 버튼
                     st.button("클립보드에 복사", key="copy_image_prompt", 
@@ -854,11 +900,41 @@ def show_prompt_generator(generator_type):
                 if generated_prompt:
                     st.success("영상 프롬프트가 생성되었습니다!")
                     
-                    # 결과 표시 (코드 블록으로 표시)
+                    # 결과 표시 방식 변경 - 코드 블록으로 표시는 프롬프트 부분만
                     prompt_container = st.container(border=True)
                     with prompt_container:
                         st.markdown(f"### 생성된 영상 프롬프트:")
-                        st.code(generated_prompt, language="markdown")
+                        
+                        # 프롬프트 텍스트를 분석하여 **프롬프트:** 부분만 코드 블록으로 표시
+                        import re
+                        
+                        # 전체 텍스트는 보통 텍스트로 표시
+                        lines = generated_prompt.split('\n')
+                        formatted_lines = []
+                        prompt_part = ""
+                        in_prompt_section = False
+                        
+                        for line in lines:
+                            # **프롬프트:** 부분 감지
+                            if '**프롬프트:**' in line or '*프롬프트:*' in line:
+                                in_prompt_section = True
+                                # 프롬프트 라벨 부분은 일반 텍스트로
+                                formatted_lines.append(line)
+                                continue
+                            
+                            # 프롬프트 섹션인 경우 해당 텍스트 수집
+                            if in_prompt_section:
+                                prompt_part += line + "\n"
+                            else:
+                                formatted_lines.append(line)
+                        
+                        # 일반 텍스트 부분 먼저 표시
+                        for line in formatted_lines:
+                            st.markdown(line)
+                        
+                        # 프롬프트 부분만 코드 블록으로 표시
+                        if prompt_part.strip():
+                            st.code(prompt_part.strip(), language="markdown")
                     
                     # 복사 버튼
                     st.button("클립보드에 복사", key="copy_video_prompt", 
