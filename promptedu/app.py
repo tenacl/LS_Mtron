@@ -535,20 +535,109 @@ def show_prompt_generator(generator_type):
                 if generated_prompt:
                     st.success("프롬프트가 생성되었습니다!")
                     
-                    # 결과 표시 방식 변경 - 코드 블록으로 표시는 프롬프트 부분만
+                    # 결과 표시 방식 변경 - 최종 프롬프트와 설명 분리해서 표시
                     prompt_container = st.container(border=True)
                     with prompt_container:
-                        st.markdown(f"### 생성된 프롬프트:")
+                        # 프롬프트 텍스트를 분석하여 코드 블록과 설명 부분 분리
+                        lines = generated_prompt.split('\n')
                         
-                        # 프롬프트 텍스트를 분석하여 **프롬프트:** 부분만 코드 블록으로 표시
-                        import re
+                        prompt_block = ""
+                        explanation_block = ""
+                        in_prompt_block = False
+                        in_explanation_block = False
+                        raw_prompt = ""  # 전체 프롬프트 저장용
                         
-                        # 딥리서치 프롬프트는 직접적인 프롬프트 라벨이 없으므로
-                        # 전체를 코드 블록으로 처리
-                        st.code(generated_prompt, language="markdown")
+                        # 마크다운 코드 블록(```) 찾기
+                        start_idx = -1
+                        end_idx = -1
+                        for i, line in enumerate(lines):
+                            if line.strip().startswith("```") and start_idx == -1:
+                                start_idx = i
+                            elif line.strip().startswith("```") and start_idx != -1:
+                                end_idx = i
+                                break
+                        
+                        # 설명 부분 시작 위치 찾기
+                        explanation_start = -1
+                        for i, line in enumerate(lines):
+                            if '📌' in line or '프롬프트 요소 설명' in line or '프롬프트에 대한 설명' in line:
+                                explanation_start = i
+                                break
+                        
+                        # 코드 블록 내용과 설명 추출
+                        if start_idx != -1 and end_idx != -1:
+                            # 코드 블록 내용 추출
+                            prompt_block = '\n'.join(lines[start_idx+1:end_idx])
+                            
+                            # 설명 부분이 찾아지지 않았다면 코드 블록 이후의 내용 전체를 설명으로 간주
+                            if explanation_start == -1:
+                                explanation_start = end_idx + 1
+                            
+                            # 설명 부분 수집
+                            if explanation_start != -1:
+                                explanation_block = '\n'.join(lines[explanation_start:])
+                            else:
+                                # 설명이 없으면 기본 설명 제공
+                                explanation_block = "📌 **프롬프트 요소 설명**\n\n프롬프트 요소에 대한 설명을 생성할 수 없습니다."
+                        else:
+                            # 코드 블록이 없는 경우 (기존 출력은 유지)
+                            # 주요 키워드 찾기
+                            for i, line in enumerate(lines):
+                                if any(keyword in line.lower() for keyword in ['research', 'analyze', 'investigate', '조사', '분석', '정보']):
+                                    if not line.startswith('"') and not line.startswith('→'):  # 설명 부분 제외
+                                        raw_prompt = line
+                                        break
+                            
+                            # 설명 부분 찾기
+                            if explanation_start != -1:
+                                explanation_block = '\n'.join(lines[explanation_start:])
+                            else:
+                                # 프롬프트에 대한 설명 패턴 찾기
+                                for i, line in enumerate(lines):
+                                    if '→' in line or ('주요' in line and '대상' in line) or ('카메라' in line and '설정' in line):
+                                        explanation_start = max(0, i-1)  # 설명 시작 가능성이 있는 위치
+                                        break
+                                
+                                if explanation_start != -1:
+                                    explanation_block = '\n'.join(lines[explanation_start:])
+                                else:
+                                    # 설명이 없으면 간단한 설명 생성
+                                    explanation_block = "📌 **프롬프트 요소 설명**\n\n프롬프트 요소에 대한 설명을 생성할 수 없습니다."
+                        
+                        # 정리된 프롬프트가 있으면 코드 블록으로 표시
+                        if prompt_block.strip():
+                            st.code(prompt_block.strip(), language="markdown")
+                        elif raw_prompt:
+                            st.code(raw_prompt.strip(), language="markdown")
+                        else:
+                            # 기존 방식으로 추출 시도
+                            try:
+                                for delimiter in ["```", "**프롬프트:**", "*프롬프트:*", "최종 프롬프트:", "딥리서치 프롬프트:"]:
+                                    if delimiter in generated_prompt:
+                                        parts = generated_prompt.split(delimiter, 2)
+                                        if len(parts) > 1:
+                                            potential_prompt = parts[1].split("```", 1)[0] if "```" in parts[1] else parts[1]
+                                            if len(potential_prompt.strip()) > 10:  # 최소 길이 확인
+                                                st.code(potential_prompt.strip(), language="markdown")
+                                                break
+                                else:
+                                    # 구분자를 찾지 못한 경우 전체 표시
+                                    st.code(generated_prompt, language="markdown")
+                            except:
+                                st.code(generated_prompt, language="markdown")
+                        
+                        # 설명 부분 표시 코드 제거 (아래 부분을 주석 처리)
+                        # if explanation_block.strip():
+                        #     st.markdown(explanation_block)
+                        # elif not prompt_block.strip() and not raw_prompt:
+                        #     # 설명 부분을 찾지 못했을 경우 원본 그대로 표시
+                        #     st.markdown(generated_prompt)
+                        # else:
+                        #     # 설명이 없지만 프롬프트가 있는 경우 기본 설명 제공
+                        #     st.markdown("📌 **프롬프트 요소 설명**\n\n프롬프트 요소에 대한 설명을 생성할 수 없습니다.")
                     
                     # 복사 버튼
-                    st.button("클립보드에 복사", key="copy_button", 
+                    st.button("클립보드에 복사", key="copy_deepresearch_prompt", 
                             help="브라우저 설정에 따라 동작이 다를 수 있습니다.")
     
     elif generator_type == "🖌️ 이미지 프롬프트 생성기":
@@ -697,43 +786,29 @@ def show_prompt_generator(generator_type):
                 if generated_prompt:
                     st.success("이미지 프롬프트가 생성되었습니다!")
                     
-                    # 결과 표시 방식 변경 - 코드 블록으로 표시는 프롬프트 부분만
-                    prompt_container = st.container(border=True)
-                    with prompt_container:
-                        st.markdown(f"### 생성된 이미지 프롬프트:")
-                        
-                        # 프롬프트 텍스트를 분석하여 **프롬프트:** 부분만 코드 블록으로 표시
-                        import re
-                        
-                        # 전체 텍스트는 보통 텍스트로 표시
-                        lines = generated_prompt.split('\n')
-                        formatted_lines = []
-                        prompt_part = ""
-                        in_prompt_section = False
-                        
-                        for line in lines:
-                            # **프롬프트:** 부분 감지
-                            if '**프롬프트:**' in line or '*프롬프트:*' in line:
-                                in_prompt_section = True
-                                # 프롬프트 라벨 부분은 일반 텍스트로
-                                formatted_lines.append(line)
-                                continue
-                            
-                            # 프롬프트 섹션인 경우 해당 텍스트 수집
-                            if in_prompt_section:
-                                prompt_part += line + "\n"
+                    # 정리된 프롬프트가 있으면 코드 블록으로 표시
+                    if prompt_block.strip():
+                        st.code(prompt_block.strip(), language="markdown")
+                    elif raw_prompt:
+                        st.code(raw_prompt.strip(), language="markdown")
+                    else:
+                        # 기존 방식으로 추출 시도
+                        try:
+                            for delimiter in ["```", "**프롬프트:**", "*프롬프트:*", "최종 프롬프트:", "딥리서치 프롬프트:"]:
+                                if delimiter in generated_prompt:
+                                    parts = generated_prompt.split(delimiter, 2)
+                                    if len(parts) > 1:
+                                        potential_prompt = parts[1].split("```", 1)[0] if "```" in parts[1] else parts[1]
+                                        if len(potential_prompt.strip()) > 10:  # 최소 길이 확인
+                                            st.code(potential_prompt.strip(), language="markdown")
+                                            break
                             else:
-                                formatted_lines.append(line)
-                        
-                        # 일반 텍스트 부분 먼저 표시
-                        for line in formatted_lines:
-                            st.markdown(line)
-                        
-                        # 프롬프트 부분만 코드 블록으로 표시
-                        if prompt_part.strip():
-                            st.code(prompt_part.strip(), language="markdown")
+                                # 구분자를 찾지 못한 경우 전체 표시
+                                st.code(generated_prompt, language="markdown")
+                        except:
+                            st.code(generated_prompt, language="markdown")
                     
-                    # 복사 버튼
+                    # 설명 부분 대신 복사 버튼만 표시
                     st.button("클립보드에 복사", key="copy_image_prompt", 
                             help="브라우저 설정에 따라 동작이 다를 수 있습니다.")
     
@@ -892,43 +967,29 @@ def show_prompt_generator(generator_type):
                 if generated_prompt:
                     st.success("영상 프롬프트가 생성되었습니다!")
                     
-                    # 결과 표시 방식 변경 - 코드 블록으로 표시는 프롬프트 부분만
-                    prompt_container = st.container(border=True)
-                    with prompt_container:
-                        st.markdown(f"### 생성된 영상 프롬프트:")
-                        
-                        # 프롬프트 텍스트를 분석하여 **프롬프트:** 부분만 코드 블록으로 표시
-                        import re
-                        
-                        # 전체 텍스트는 보통 텍스트로 표시
-                        lines = generated_prompt.split('\n')
-                        formatted_lines = []
-                        prompt_part = ""
-                        in_prompt_section = False
-                        
-                        for line in lines:
-                            # **프롬프트:** 부분 감지
-                            if '**프롬프트:**' in line or '*프롬프트:*' in line:
-                                in_prompt_section = True
-                                # 프롬프트 라벨 부분은 일반 텍스트로
-                                formatted_lines.append(line)
-                                continue
-                            
-                            # 프롬프트 섹션인 경우 해당 텍스트 수집
-                            if in_prompt_section:
-                                prompt_part += line + "\n"
+                    # 정리된 프롬프트가 있으면 코드 블록으로 표시
+                    if prompt_block.strip():
+                        st.code(prompt_block.strip(), language="markdown")
+                    elif raw_prompt:
+                        st.code(raw_prompt.strip(), language="markdown")
+                    else:
+                        # 기존 방식으로 추출 시도
+                        try:
+                            for delimiter in ["```", "**프롬프트:**", "*프롬프트:*", "최종 프롬프트:", "딥리서치 프롬프트:"]:
+                                if delimiter in generated_prompt:
+                                    parts = generated_prompt.split(delimiter, 2)
+                                    if len(parts) > 1:
+                                        potential_prompt = parts[1].split("```", 1)[0] if "```" in parts[1] else parts[1]
+                                        if len(potential_prompt.strip()) > 10:  # 최소 길이 확인
+                                            st.code(potential_prompt.strip(), language="markdown")
+                                            break
                             else:
-                                formatted_lines.append(line)
-                        
-                        # 일반 텍스트 부분 먼저 표시
-                        for line in formatted_lines:
-                            st.markdown(line)
-                        
-                        # 프롬프트 부분만 코드 블록으로 표시
-                        if prompt_part.strip():
-                            st.code(prompt_part.strip(), language="markdown")
+                                # 구분자를 찾지 못한 경우 전체 표시
+                                st.code(generated_prompt, language="markdown")
+                        except:
+                            st.code(generated_prompt, language="markdown")
                     
-                    # 복사 버튼
+                    # 설명 부분 대신 복사 버튼만 표시
                     st.button("클립보드에 복사", key="copy_video_prompt", 
                             help="브라우저 설정에 따라 동작이 다를 수 있습니다.")
 
