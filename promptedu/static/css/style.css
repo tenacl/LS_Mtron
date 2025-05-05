@@ -1,0 +1,172 @@
+/* 친절한 프롬프트 트레이너J CSS 스타일 */
+
+/* 메인 컨테이너 스타일 */
+.main-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 헤더 스타일 */
+h1 {
+    color: #2e7d32;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+h2, h3 {
+    color: #1b5e20;
+    margin-top: 1.5rem;
+    margin-bottom: 0.8rem;
+}
+
+/* 트랙 카드 스타일 */
+.track-card {
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-left: 5px solid #4caf50;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* 트랙 아이콘 스타일 */
+.track-icon {
+    font-size: 2rem;
+    margin-right: 0.5rem;
+}
+
+/* 버튼 스타일 */
+.custom-button {
+    background-color: #4caf50;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.custom-button:hover {
+    background-color: #2e7d32;
+}
+
+/* 푸터 스타일 */
+.footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e0e0e0;
+    font-size: 0.9rem;
+    color: #757575;
+}
+
+/* 프롬프트 평가 결과 스타일 */
+.feedback-container {
+    background-color: #f1f8e9;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+    border-left: 5px solid #8bc34a;
+}
+
+.feedback-item {
+    margin-bottom: 0.8rem;
+}
+
+.feedback-score {
+    font-weight: bold;
+    color: #33691e;
+}
+
+/* 일일 훈련 과제 스타일 */
+.daily-task {
+    background-color: #e8f5e9;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.task-header {
+    font-weight: bold;
+    color: #1b5e20;
+    margin-bottom: 0.5rem;
+}
+
+/* 사이드바 스타일 */
+.sidebar .sidebar-content {
+    padding-top: 1rem;
+}
+
+/* 사이드바 라디오 버튼 간격 조정 */
+.stRadio > div {
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+}
+
+/* 사이드바 그룹 구분 스타일 */
+.sidebar hr {
+    margin-top: 2rem !important;
+    margin-bottom: 1rem !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 사이드바 생성기 그룹 헤더 스타일 */
+.sidebar .generator-header {
+    background-color: #f1f8e9;
+    border-radius: 4px;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    font-weight: bold;
+    color: #2e7d32;
+}
+
+/* 코드 블록 스타일 개선 */
+pre {
+    white-space: pre-wrap !important;       /* CSS3 */
+    word-wrap: break-word !important;        /* IE */
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    max-width: 100%;
+}
+
+.stCodeBlock {
+    max-width: 100%;
+}
+
+.stCodeBlock pre {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+}
+
+/* 코드 블록 내부 텍스트 스타일 */
+code {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.95em;
+    line-height: 1.4;
+    background-color: rgba(0, 0, 0, 0.03);
+    padding: 0.2em 0;
+    border-radius: 3px;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+}
+
+/* 트랙 구분선 스타일 */
+.track-divider {
+    height: 2rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px dashed #ccc;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2rem;
+    }
+    
+    .track-card {
+        padding: 1rem;
+    }
+} 
