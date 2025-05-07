@@ -830,7 +830,9 @@ def show_prompt_generator(generator_type):
                     else:
                         # 파싱이 실패한 경우 전체 내용을 표시
                         st.markdown("### 생성된 프롬프트")
-                        st.markdown(generated_prompt)
+                        
+                        # 전체 프롬프트 텍스트를 코드 블록으로 표시
+                        st.code(generated_prompt, language="markdown")
                         
                         # 영어 프롬프트 부분을 추출해 코드 블록으로 표시
                         english_prompts = extract_english_prompts(generated_prompt)
@@ -1015,12 +1017,14 @@ def show_prompt_generator(generator_type):
                     else:
                         # 파싱이 실패한 경우 전체 내용을 표시
                         st.markdown("### 생성된 프롬프트")
-                        st.markdown(generated_prompt)
+                        
+                        # 전체 프롬프트 텍스트를 코드 블록으로 표시
+                        st.code(generated_prompt, language="markdown")
                         
                         # 영어 프롬프트 부분을 추출해 코드 블록으로 표시
                         english_prompts = extract_english_prompts(generated_prompt)
                         if english_prompts:
-                            st.markdown("### 영어 프롬프트 예시")
+                            st.markdown("### 프롬프트 예시")
                             for i, prompt in enumerate(english_prompts, 1):
                                 st.code(prompt, language="markdown")
                 else:
