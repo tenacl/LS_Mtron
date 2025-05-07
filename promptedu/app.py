@@ -590,46 +590,67 @@ def parse_gemini_sections(text):
     lines = text.splitlines()
     current = None
     buffer = []
+    
+    # 첫 줄부터 스캔해서 섹션 판별
     for line in lines:
         if "영상 생성 AI 프롬프트" in line or "이미지 생성 AI 프롬프트" in line:
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
             current = "title"
-        elif "프롬프트 예시 1" in line:
+            buffer.append(line)
+        elif "프롬프트 예시 1" in line or "간결" in line:
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
             current = "prompt1"
-        elif "프롬프트 예시 2" in line:
+            buffer.append(line)
+        elif "프롬프트 예시 2" in line or "상세" in line:
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
             current = "prompt2"
-        elif "프롬프트 예시 3" in line:
+            buffer.append(line)
+        elif "프롬프트 예시 3" in line or "강조" in line:
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
             current = "prompt3"
+            buffer.append(line)
         elif "추가 팁" in line:
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
             current = "tips"
-        elif "요소" in line or "Elements" in line:
+            buffer.append(line)
+        elif "프롬프트 요소" in line or "요소" in line and "Elements" in line:
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
             current = "elements"
-        elif "설명" in line or "Summary" in line:
+            buffer.append(line)
+        elif "한글 요약" in line or "요약" in line or "설명" in line or "Summary" in line:
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
             current = "summary"
-        else:
             buffer.append(line)
+        else:
+            if current:
+                buffer.append(line)
+            else:
+                # 시작 부분에 아직 섹션을 못 찾았다면 title로 간주
+                current = "title"
+                buffer.append(line)
+                
+    # 마지막 섹션 처리
     if buffer and current:
         sections[current] = "\n".join(buffer).strip()
+    
+    # 섹션이 하나도 파싱되지 않았다면 전체 텍스트를 summary에 넣기
+    if not any(sections.values()):
+        sections["summary"] = text
+        
     return sections
 
 # 프롬프트 생성기만 표시하는 함수
@@ -781,25 +802,42 @@ def show_prompt_generator(generator_type):
                 if generated_prompt:
                     st.success("프롬프트가 생성되었습니다!")
                     sections = parse_gemini_sections(generated_prompt)
-                    if sections["title"]:
-                        st.markdown(f"### {sections['title']}")
-                    if sections["summary"]:
-                        st.markdown(sections["summary"])
-                    if sections["elements"]:
-                        st.markdown("#### 프롬프트 요소")
-                        st.markdown(sections["elements"])
-                    if sections["prompt1"]:
-                        st.markdown("#### 프롬프트 예시 1")
-                        st.code(sections["prompt1"], language="markdown")
-                    if sections["prompt2"]:
-                        st.markdown("#### 프롬프트 예시 2")
-                        st.code(sections["prompt2"], language="markdown")
-                    if sections["prompt3"]:
-                        st.markdown("#### 프롬프트 예시 3")
-                        st.code(sections["prompt3"], language="markdown")
-                    if sections["tips"]:
-                        st.markdown("#### 추가 팁")
-                        st.markdown(sections["tips"])
+                    
+                    # 섹션이 제대로 파싱됐는지 확인
+                    has_parsed_sections = any(key != "summary" and sections[key] for key in sections)
+                    
+                    if has_parsed_sections:
+                        # 정상적으로 파싱된 경우
+                        if sections["title"]:
+                            st.markdown(f"### {sections['title']}")
+                        if sections["summary"]:
+                            st.markdown(sections["summary"])
+                        if sections["elements"]:
+                            st.markdown("#### 프롬프트 요소")
+                            st.markdown(sections["elements"])
+                        if sections["prompt1"]:
+                            st.markdown("#### 프롬프트 예시 1")
+                            st.code(sections["prompt1"], language="markdown")
+                        if sections["prompt2"]:
+                            st.markdown("#### 프롬프트 예시 2")
+                            st.code(sections["prompt2"], language="markdown")
+                        if sections["prompt3"]:
+                            st.markdown("#### 프롬프트 예시 3")
+                            st.code(sections["prompt3"], language="markdown")
+                        if sections["tips"]:
+                            st.markdown("#### 추가 팁")
+                            st.markdown(sections["tips"])
+                    else:
+                        # 파싱이 실패한 경우 전체 내용을 표시
+                        st.markdown("### 생성된 프롬프트")
+                        st.markdown(generated_prompt)
+                        
+                        # 영어 프롬프트 부분을 추출해 코드 블록으로 표시
+                        english_prompts = extract_english_prompts(generated_prompt)
+                        if english_prompts:
+                            st.markdown("### 프롬프트 예시")
+                            for i, prompt in enumerate(english_prompts, 1):
+                                st.code(prompt, language="markdown")
                 else:
                     st.error("프롬프트 생성에 실패했습니다.")
     
@@ -949,25 +987,42 @@ def show_prompt_generator(generator_type):
                 if generated_prompt:
                     st.success("이미지 프롬프트가 생성되었습니다!")
                     sections = parse_gemini_sections(generated_prompt)
-                    if sections["title"]:
-                        st.markdown(f"### {sections['title']}")
-                    if sections["summary"]:
-                        st.markdown(sections["summary"])
-                    if sections["elements"]:
-                        st.markdown("#### 프롬프트 요소")
-                        st.markdown(sections["elements"])
-                    if sections["prompt1"]:
-                        st.markdown("#### 프롬프트 예시 1")
-                        st.code(sections["prompt1"], language="markdown")
-                    if sections["prompt2"]:
-                        st.markdown("#### 프롬프트 예시 2")
-                        st.code(sections["prompt2"], language="markdown")
-                    if sections["prompt3"]:
-                        st.markdown("#### 프롬프트 예시 3")
-                        st.code(sections["prompt3"], language="markdown")
-                    if sections["tips"]:
-                        st.markdown("#### 추가 팁")
-                        st.markdown(sections["tips"])
+                    
+                    # 섹션이 제대로 파싱됐는지 확인
+                    has_parsed_sections = any(key != "summary" and sections[key] for key in sections)
+                    
+                    if has_parsed_sections:
+                        # 정상적으로 파싱된 경우
+                        if sections["title"]:
+                            st.markdown(f"### {sections['title']}")
+                        if sections["summary"]:
+                            st.markdown(sections["summary"])
+                        if sections["elements"]:
+                            st.markdown("#### 프롬프트 요소")
+                            st.markdown(sections["elements"])
+                        if sections["prompt1"]:
+                            st.markdown("#### 프롬프트 예시 1")
+                            st.code(sections["prompt1"], language="markdown")
+                        if sections["prompt2"]:
+                            st.markdown("#### 프롬프트 예시 2")
+                            st.code(sections["prompt2"], language="markdown")
+                        if sections["prompt3"]:
+                            st.markdown("#### 프롬프트 예시 3")
+                            st.code(sections["prompt3"], language="markdown")
+                        if sections["tips"]:
+                            st.markdown("#### 추가 팁")
+                            st.markdown(sections["tips"])
+                    else:
+                        # 파싱이 실패한 경우 전체 내용을 표시
+                        st.markdown("### 생성된 프롬프트")
+                        st.markdown(generated_prompt)
+                        
+                        # 영어 프롬프트 부분을 추출해 코드 블록으로 표시
+                        english_prompts = extract_english_prompts(generated_prompt)
+                        if english_prompts:
+                            st.markdown("### 영어 프롬프트 예시")
+                            for i, prompt in enumerate(english_prompts, 1):
+                                st.code(prompt, language="markdown")
                 else:
                     st.error("프롬프트 생성에 실패했습니다.")
     
@@ -1153,23 +1208,26 @@ def show_prompt_generator(generator_type):
                 else:
                     st.error("프롬프트 생성에 실패했습니다.")
 
-def extract_main_prompt(text):
-    # 코드블록 우선 추출
+def extract_english_prompts(text):
+    """영어 문장 위주로 프롬프트 예시 추출"""
+    import re
+    prompts = []
+    
+    # 1. 코드 블록 추출
     code_blocks = re.findall(r"```[a-zA-Z]*\n(.*?)```", text, re.DOTALL)
     if code_blocks:
-        return code_blocks[0].strip()
-    # 'Prompt:' 또는 '**프롬프트:**' 등으로 시작하는 줄 추출
-    for line in text.splitlines():
-        if line.strip().lower().startswith("prompt:") or "prompt:" in line.lower():
-            return line.split(":", 1)[-1].strip()
-        if "scene" in line.lower() and len(line) > 30:
-            return line.strip()
-    # 영어로 된 가장 긴 문장 추출 (예시)
-    english_lines = [l for l in text.splitlines() if re.search(r"[a-zA-Z]", l) and len(l) > 30]
-    if english_lines:
-        return max(english_lines, key=len)
-    # 기본: 전체 반환
-    return text.strip()
+        for block in code_blocks:
+            prompts.append(block.strip())
+            
+    # 2. 코드 블록이 없으면 영어 문장 중 긴 것만 추출
+    if not prompts:
+        lines = text.splitlines()
+        for line in lines:
+            # 영어 문자가 대부분인 줄에서 30자 이상인 것만 선택
+            if re.search(r"[a-zA-Z]", line) and len(line) > 30 and sum(c.isalpha() for c in line) / len(line) > 0.5:
+                prompts.append(line.strip())
+    
+    return prompts
 
 # 메인 함수
 def main():
