@@ -170,46 +170,76 @@ def extract_prompt_and_explanation(text):
         prompt = code_blocks[0].strip()
     else:
         prompt = ""
-        for line in text.splitlines():
-            if line.strip().lower().startswith("prompt:") or "prompt:" in line.lower():
-                prompt = line.split(":", 1)[-1].strip()
-                break
+        # 딥 리서치 프롬프트 형식 확인 (## 딥 리서치 프롬프트 다음에 나오는 내용)
+        if "## 딥 리서치 프롬프트" in text:
+            sections = text.split("## 딥 리서치 프롬프트", 1)
+            if len(sections) > 1:
+                prompt = sections[1].strip()
+        
+        # 일반적인 프롬프트 형식 확인
+        if not prompt:
+            for line in text.splitlines():
+                if line.strip().lower().startswith("prompt:") or "prompt:" in line.lower():
+                    prompt = line.split(":", 1)[-1].strip()
+                    break
+        
+        # 마지막 대안으로 영어 라인 중 가장 긴 것 선택
         if not prompt:
             english_lines = [l for l in text.splitlines() if re.search(r"[a-zA-Z]", l) and len(l) > 30]
             prompt = max(english_lines, key=len) if english_lines else text.strip()
+    
     # 2. 한글 설명(프롬프트가 아닌 부분)
     explanation = ""
     for line in text.splitlines():
         if not re.search(r"[a-zA-Z]", line) and len(line.strip()) > 10:
             explanation += line.strip() + "\n"
+    
+    # 백업 메커니즘: 설명이 없는 경우 기본 설명 제공
+    if not explanation and "딥 리서치" in text:
+        explanation = "딥 리서치를 위한 프롬프트가 생성되었습니다."
+    
     return prompt, explanation.strip()
 
 def generate_prompt(track, topic, purpose=None, sources=None, format=None):
-    prompt_text = get_prompt_text(track, topic, purpose, sources, format)
-    for i, model_name in enumerate(GEMINI_MODELS):
-        try:
-            model = genai.GenerativeModel(model_name)
-            st.session_state['current_model'] = model_name
-            if i > 0:
-                st.toast(f"{GEMINI_MODELS[i-1]} 모델 사용량 초과로 {model_name} 모델로 전환합니다.", icon="⚠️")
-            response = model.generate_content(prompt_text)
-            if hasattr(response, "text") and isinstance(response.text, str):
-                return extract_prompt_and_explanation(response.text)
-            elif hasattr(response, "parts") and isinstance(response.parts, list) and response.parts:
-                return extract_prompt_and_explanation(response.parts[0].text if hasattr(response.parts[0], "text") else str(response.parts[0]))
-            elif hasattr(response, "candidates") and response.candidates:
-                parts = response.candidates[0].content.parts
-                return extract_prompt_and_explanation(parts[0].text if hasattr(parts[0], "text") else str(parts[0]))
-            else:
-                return extract_prompt_and_explanation(str(response))
-        except Exception as e:
-            if i < len(GEMINI_MODELS) - 1 and is_quota_exceeded_error(e):
-                continue
-            else:
-                st.error(f"프롬프트 생성 중 오류가 발생했습니다: {str(e)}")
-                return None, None
-    st.error("모든 모델 시도 후 프롬프트 생성에 실패했습니다.")
-    return None, None
+    try:
+        prompt_text = get_prompt_text(track, topic, purpose, sources, format)
+        for i, model_name in enumerate(GEMINI_MODELS):
+            try:
+                model = genai.GenerativeModel(model_name)
+                st.session_state['current_model'] = model_name
+                if i > 0:
+                    st.toast(f"{GEMINI_MODELS[i-1]} 모델 사용량 초과로 {model_name} 모델로 전환합니다.", icon="⚠️")
+                
+                # 디버깅용 메시지 추가
+                st.session_state['last_prompt_text'] = prompt_text
+                
+                response = model.generate_content(prompt_text)
+                if hasattr(response, "text") and isinstance(response.text, str):
+                    return extract_prompt_and_explanation(response.text)
+                elif hasattr(response, "parts") and isinstance(response.parts, list) and response.parts:
+                    return extract_prompt_and_explanation(response.parts[0].text if hasattr(response.parts[0], "text") else str(response.parts[0]))
+                elif hasattr(response, "candidates") and response.candidates:
+                    parts = response.candidates[0].content.parts
+                    return extract_prompt_and_explanation(parts[0].text if hasattr(parts[0], "text") else str(parts[0]))
+                else:
+                    return extract_prompt_and_explanation(str(response))
+            except Exception as e:
+                error_msg = str(e)
+                st.session_state['last_error'] = error_msg
+                
+                if i < len(GEMINI_MODELS) - 1 and is_quota_exceeded_error(error_msg):
+                    continue
+                else:
+                    st.error(f"프롬프트 생성 중 오류가 발생했습니다: {error_msg}")
+                    if "🔧 딥리서치 프롬프트 생성기" in track:
+                        # 딥 리서치 프롬프트의 경우 기본 응답 생성
+                        return f"주제 '{topic}'에 대해 {purpose}을 위한 심층적인 연구를 수행하고, {sources}의 신뢰할 수 있는 출처를 통해 정보를 수집하여 {format} 형식으로 분석 결과를 제공해주세요.", "딥 리서치 프롬프트 생성 중 오류가 발생하여 기본 프롬프트로 대체되었습니다."
+                    return None, None
+        st.error("모든 모델 시도 후 프롬프트 생성에 실패했습니다.")
+        return None, None
+    except Exception as e:
+        st.error(f"generate_prompt 함수 실행 중 오류 발생: {str(e)}")
+        return None, None
 
 # 프롬프트 텍스트 생성 함수 분리 (기존 로직 추출)
 def get_prompt_text(track, topic, purpose=None, sources=None, format=None):
@@ -358,23 +388,46 @@ def get_prompt_text(track, topic, purpose=None, sources=None, format=None):
         출력에는 반드시 위에 지정한 출력 형식의 모든 섹션을 포함해야 하며, 각 섹션은 충분히 상세하게 작성되어야 합니다.
         """
     elif track == "🔎 딥리서치 프롬프트" or track == "🔧 딥리서치 프롬프트 생성기":
-        prompt_text = f"""
-        사용자가 제공한 정보를 바탕으로 딥 리서치를 위한 프롬프트를 작성해주세요.
+        # 딥 리서치 프롬프트 생성기에서 사용할 수 있는 형식으로 변경
+        try:
+            if purpose is None:
+                purpose = "목적 정보 없음"
+            if sources is None:
+                sources = "출처 정보 없음"
+            if format is None:
+                format = "표준 형식"
+                
+            prompt_text = f"""
+            사용자가 제공한 정보를 바탕으로 딥 리서치를 위한 프롬프트를 작성해주세요.
 
-        주제: "{topic}"
-        목적(목표): {purpose}
-        원하는 출처: {sources}
-        결과 형식: {format}
-        
-        지침:
-        1. 사용자가 제공한 주제, 목적, 출처, 결과 형식을 90% 그대로 유지하세요.
-        2. 10% 정도의 개선점(필요한 시간 범위, 중요 개념 정의, 분석 기준 등)만 추가하세요.
-        3. 간결하고 명확한 한 문단으로 작성하세요.
-        4. 사용자가 실제로 딥 리서치에 바로 활용할 수 있도록 실용적인 형태로 작성하세요.
-        
-        출력은 복사하여 바로 사용할 수 있는 단일 프롬프트 문장만 제공하세요.
-        불필요한 설명이나 주석은 포함하지 마세요.
-        """
+            주제: "{topic}"
+            목적(목표): {purpose}
+            원하는 출처: {sources}
+            결과 형식: {format}
+            
+            지침:
+            1. 사용자가 제공한 주제, 목적, 출처, 결과 형식을 90% 그대로 유지하세요.
+            2. 10% 정도의 개선점(필요한 시간 범위, 중요 개념 정의, 분석 기준 등)만 추가하세요.
+            3. 간결하고 명확한 한 문단으로 작성하세요.
+            4. 사용자가 실제로 딥 리서치에 바로 활용할 수 있도록 실용적인 형태로 작성하세요.
+            5. 출력은 사용자가 대형 언어 모델(LLM)에 복사하여 바로 사용할 수 있는 단일 프롬프트 문장으로 작성하세요.
+            
+            다음과 같은 형식으로 프롬프트를 작성해주세요:
+            
+            ```
+            ## 딥 리서치 프롬프트
+            
+            [여기에 프롬프트 내용 작성]
+            ```
+            
+            불필요한 설명이나 주석은 포함하지 마세요.
+            """
+        except Exception as e:
+            st.error(f"딥 리서치 프롬프트 생성 전처리 중 오류: {str(e)}")
+            # 기본 프롬프트로 대체
+            prompt_text = f"""
+            "{topic}" 주제에 대한 심층 리서치를 위한 프롬프트를 작성해주세요.
+            """
     else:  # 텍스트 트랙들
         prompt_text = f"""
         "{topic}" 주제로 {purpose}을 진행하고 싶습니다. {sources}에서 관련 정보를 찾아 {format} 형식으로 정리해주세요.
@@ -844,7 +897,7 @@ def show_prompt_generator(generator_type):
                 # 선택된 출처들을 문자열로 변환
                 sources_text = ", ".join(st.session_state.selected_sources)
                 # 프롬프트 생성 함수 호출
-                generated_prompt, _ = generate_prompt(
+                generated_prompt, explanation = generate_prompt(
                     "🔧 딥리서치 프롬프트 생성기", 
                     topic, 
                     purpose, 
@@ -855,123 +908,49 @@ def show_prompt_generator(generator_type):
                 if generated_prompt:
                     st.success("프롬프트가 생성되었습니다!")
                     
-                    # 영상 프롬프트처럼 직접 파싱하여 섹션별로 구분해서 표시
-                    lines = generated_prompt.splitlines()
-                    current_section = None
-                    section_content = []
+                    # 생성된 프롬프트를 큰 코드 블록으로 표시
+                    st.markdown("### 생성된 딥 리서치 프롬프트")
+                    st.code(generated_prompt, language="markdown")
                     
-                    # 각 줄을 살펴보면서 섹션 파악
-                    for line in lines:
-                        line = line.strip()
-                        if not line:
-                            continue
-                            
-                        if "주제:" in line or "주제 :" in line:
-                            if current_section:
-                                # 이전 섹션 출력
-                                st.markdown(f"### {current_section}")
-                                st.markdown("\n".join(section_content))
-                                section_content = []
-                            current_section = "주제"
-                        elif "스타일" in line or "시각적 특징" in line:
-                            if current_section:
-                                st.markdown(f"### {current_section}")
-                                st.markdown("\n".join(section_content))
-                                section_content = []
-                            current_section = "스타일"
-                        elif "카메라" in line or "앵글/샷:" in line or "구도" in line:
-                            if current_section:
-                                st.markdown(f"### {current_section}")
-                                st.markdown("\n".join(section_content))
-                                section_content = []
-                            current_section = "카메라 설정"
-                        elif "분위기" in line or "조명:" in line:
-                            if current_section:
-                                st.markdown(f"### {current_section}")
-                                st.markdown("\n".join(section_content))
-                                section_content = []
-                            current_section = "분위기/조명"
-                        elif "시간:" in line or "시간 :" in line:
-                            if current_section:
-                                st.markdown(f"### {current_section}")
-                                st.markdown("\n".join(section_content))
-                                section_content = []
-                            current_section = "시간"
-                        elif "프롬프트 요소" in line or "요소:" in line:
-                            if current_section:
-                                st.markdown(f"### {current_section}")
-                                st.markdown("\n".join(section_content))
-                                section_content = []
-                            current_section = "프롬프트 요소"
-                        elif "프롬프트 예시 1" in line or "간결" in line:
-                            if current_section:
-                                st.markdown(f"### {current_section}")
-                                st.markdown("\n".join(section_content))
-                                section_content = []
-                            current_section = "프롬프트 예시 1"
-                            continue
-                        elif "프롬프트 예시 2" in line or "상세" in line:
-                            if current_section and section_content:
-                                if current_section == "프롬프트 예시 1":
-                                    st.markdown(f"### {current_section}")
-                                    st.code("\n".join(section_content), language="markdown")
-                                else:
-                                    st.markdown(f"### {current_section}")
-                                    st.markdown("\n".join(section_content))
-                                section_content = []
-                            current_section = "프롬프트 예시 2"
-                            continue
-                        elif "프롬프트 예시 3" in line or "강조" in line:
-                            if current_section and section_content:
-                                if current_section == "프롬프트 예시 2":
-                                    st.markdown(f"### {current_section}")
-                                    st.code("\n".join(section_content), language="markdown")
-                                else:
-                                    st.markdown(f"### {current_section}")
-                                    st.markdown("\n".join(section_content))
-                                section_content = []
-                            current_section = "프롬프트 예시 3"
-                            continue
-                        elif "추가 팁" in line or "추가팁" in line:
-                            if current_section and section_content:
-                                if current_section == "프롬프트 예시 3":
-                                    st.markdown(f"### {current_section}")
-                                    st.code("\n".join(section_content), language="markdown")
-                                else:
-                                    st.markdown(f"### {current_section}")
-                                    st.markdown("\n".join(section_content))
-                                section_content = []
-                            current_section = "추가 팁"
-                            continue
-                        
-                        # 현재 줄을 현재 섹션에 추가
-                        section_content.append(line)
+                    if explanation and explanation != "딥 리서치를 위한 프롬프트가 생성되었습니다.":
+                        st.markdown("### 📝 추가 설명")
+                        st.markdown(explanation)
                     
-                    # 마지막 섹션 출력
-                    if current_section and section_content:
-                        if current_section in ["프롬프트 예시 1", "프롬프트 예시 2", "프롬프트 예시 3"]:
-                            st.markdown(f"### {current_section}")
-                            st.code("\n".join(section_content), language="markdown")
-                        else:
-                            st.markdown(f"### {current_section}")
-                            st.markdown("\n".join(section_content))
+                    # 복사 버튼 기능 추가
+                    st.markdown("""
+                    <style>
+                    .copy-btn {
+                        background-color: #4CAF50;
+                        border: none;
+                        color: white;
+                        padding: 10px 20px;
+                        text-align: center;
+                        text-decoration: none;
+                        display: inline-block;
+                        font-size: 16px;
+                        margin: 4px 2px;
+                        cursor: pointer;
+                        border-radius: 4px;
+                    }
+                    </style>
+                    """, unsafe_allow_html=True)
                     
-                    # 어떤 섹션도 파싱되지 않았을 경우
-                    if not current_section:
-                        # 영어 프롬프트만 추출해서 코드 블록으로 표시
-                        english_prompts = extract_english_prompts(generated_prompt)
-                        if english_prompts:
-                            st.markdown("### 프롬프트 예시 1")
-                            st.code(english_prompts[0], language="markdown")
-                            if len(english_prompts) > 1:
-                                st.markdown("### 프롬프트 예시 2")
-                                st.code(english_prompts[1], language="markdown")
-                            if len(english_prompts) > 2:
-                                st.markdown("### 프롬프트 예시 3")
-                                st.code(english_prompts[2], language="markdown")
-                        else:
-                            st.markdown("### 생성된 프롬프트")
-                            st.code(generated_prompt, language="markdown")
+                    # JavaScript를 통한 복사 기능 추가
+                    st.markdown(f"""
+                    <button class="copy-btn" onclick="navigator.clipboard.writeText(`{generated_prompt.replace('`', '\\`')}`)">
+                        📋 프롬프트 복사하기
+                    </button>
+                    """, unsafe_allow_html=True)
+                    
+                    # 사용 방법 안내
+                    st.markdown("""
+                    ### 🚀 활용 방법
+                    
+                    1. 위 프롬프트를 복사하세요 (복사 버튼 클릭)
+                    2. ChatGPT, Claude, Gemini 등 원하는 AI 도구에 붙여넣으세요
+                    3. AI가 제공하는 심층 분석 결과를 확인하세요
+                    """)
+                    
                 else:
                     st.error("프롬프트 생성에 실패했습니다.")
     
@@ -1370,13 +1349,21 @@ def extract_english_prompts(text):
     import re
     prompts = []
     
-    # 1. 코드 블록 추출
+    # 1. 코드 블록 추출 (``` 형식)
     code_blocks = re.findall(r"```[a-zA-Z]*\n(.*?)```", text, re.DOTALL)
     if code_blocks:
         for block in code_blocks:
             prompts.append(block.strip())
-            
-    # 2. 코드 블록이 없으면 영어 문장 중 긴 것만 추출
+    
+    # 2. 딥 리서치 프롬프트 형식 추출 (## 딥 리서치 프롬프트 다음에 나오는 내용)
+    if "## 딥 리서치 프롬프트" in text:
+        sections = text.split("## 딥 리서치 프롬프트", 1)
+        if len(sections) > 1:
+            content = sections[1].strip()
+            if content and not any(content in p for p in prompts):
+                prompts.append(content)
+    
+    # 3. 코드 블록이 없으면 영어 문장 중 긴 것만 추출
     if not prompts:
         lines = text.splitlines()
         for line in lines:
