@@ -517,6 +517,61 @@ def show_track_page(track_name):
             generator_to_show = generator_mapping.get(track_name, "🔧 딥리서치 프롬프트 생성기")
             show_prompt_generator(generator_to_show)
 
+def parse_gemini_sections(text):
+    sections = {
+        "title": "",
+        "summary": "",
+        "elements": "",
+        "prompt1": "",
+        "prompt2": "",
+        "prompt3": "",
+        "tips": ""
+    }
+    lines = text.splitlines()
+    current = None
+    buffer = []
+    for line in lines:
+        if "영상 생성 AI 프롬프트" in line or "이미지 생성 AI 프롬프트" in line:
+            if buffer and current:
+                sections[current] = "\n".join(buffer).strip()
+                buffer = []
+            current = "title"
+        elif "프롬프트 예시 1" in line:
+            if buffer and current:
+                sections[current] = "\n".join(buffer).strip()
+                buffer = []
+            current = "prompt1"
+        elif "프롬프트 예시 2" in line:
+            if buffer and current:
+                sections[current] = "\n".join(buffer).strip()
+                buffer = []
+            current = "prompt2"
+        elif "프롬프트 예시 3" in line:
+            if buffer and current:
+                sections[current] = "\n".join(buffer).strip()
+                buffer = []
+            current = "prompt3"
+        elif "추가 팁" in line:
+            if buffer and current:
+                sections[current] = "\n".join(buffer).strip()
+                buffer = []
+            current = "tips"
+        elif "요소" in line or "Elements" in line:
+            if buffer and current:
+                sections[current] = "\n".join(buffer).strip()
+                buffer = []
+            current = "elements"
+        elif "설명" in line or "Summary" in line:
+            if buffer and current:
+                sections[current] = "\n".join(buffer).strip()
+                buffer = []
+            current = "summary"
+        else:
+            buffer.append(line)
+    if buffer and current:
+        sections[current] = "\n".join(buffer).strip()
+    return sections
+
 # 프롬프트 생성기만 표시하는 함수
 def show_prompt_generator(generator_type):
     if generator_type == "🔧 딥리서치 프롬프트 생성기":
@@ -665,10 +720,26 @@ def show_prompt_generator(generator_type):
                 
                 if generated_prompt:
                     st.success("프롬프트가 생성되었습니다!")
-                    st.code(generated_prompt, language="markdown")
-                    if explanation:
-                        st.markdown("**설명:**")
-                        st.markdown(explanation)
+                    sections = parse_gemini_sections(generated_prompt)
+                    if sections["title"]:
+                        st.markdown(f"### {sections['title']}")
+                    if sections["summary"]:
+                        st.markdown(sections["summary"])
+                    if sections["elements"]:
+                        st.markdown("#### 프롬프트 요소")
+                        st.markdown(sections["elements"])
+                    if sections["prompt1"]:
+                        st.markdown("#### 프롬프트 예시 1")
+                        st.code(sections["prompt1"], language="markdown")
+                    if sections["prompt2"]:
+                        st.markdown("#### 프롬프트 예시 2")
+                        st.code(sections["prompt2"], language="markdown")
+                    if sections["prompt3"]:
+                        st.markdown("#### 프롬프트 예시 3")
+                        st.code(sections["prompt3"], language="markdown")
+                    if sections["tips"]:
+                        st.markdown("#### 추가 팁")
+                        st.markdown(sections["tips"])
                 else:
                     st.error("프롬프트 생성에 실패했습니다.")
     
@@ -817,36 +888,28 @@ def show_prompt_generator(generator_type):
                 
                 if generated_prompt:
                     st.success("이미지 프롬프트가 생성되었습니다!")
-                    
-                    # 초기화
-                    prompt_block = ""
-                    raw_prompt = ""
-                    
-                    # 정리된 프롬프트가 있으면 코드 블록으로 표시
-                    if prompt_block.strip():
-                        st.code(prompt_block.strip(), language="markdown")
-                    elif raw_prompt:
-                        st.code(raw_prompt.strip(), language="markdown")
-                    else:
-                        # 기존 방식으로 추출 시도
-                        try:
-                            for delimiter in ["```", "**프롬프트:**", "*프롬프트:*", "최종 프롬프트:", "딥리서치 프롬프트:"]:
-                                if delimiter in generated_prompt:
-                                    parts = generated_prompt.split(delimiter, 2)
-                                    if len(parts) > 1:
-                                        potential_prompt = parts[1].split("```", 1)[0] if "```" in parts[1] else parts[1]
-                                        if len(potential_prompt.strip()) > 10:  # 최소 길이 확인
-                                            st.code(potential_prompt.strip(), language="markdown")
-                                            break
-                                else:
-                                    # 구분자를 찾지 못한 경우 전체 표시
-                                    st.code(generated_prompt, language="markdown")
-                        except:
-                            st.code(generated_prompt, language="markdown")
-                    
-                    # 설명 부분 대신 복사 버튼만 표시
-                    st.button("클립보드에 복사", key="copy_image_prompt", 
-                            help="브라우저 설정에 따라 동작이 다를 수 있습니다.")
+                    sections = parse_gemini_sections(generated_prompt)
+                    if sections["title"]:
+                        st.markdown(f"### {sections['title']}")
+                    if sections["summary"]:
+                        st.markdown(sections["summary"])
+                    if sections["elements"]:
+                        st.markdown("#### 프롬프트 요소")
+                        st.markdown(sections["elements"])
+                    if sections["prompt1"]:
+                        st.markdown("#### 프롬프트 예시 1")
+                        st.code(sections["prompt1"], language="markdown")
+                    if sections["prompt2"]:
+                        st.markdown("#### 프롬프트 예시 2")
+                        st.code(sections["prompt2"], language="markdown")
+                    if sections["prompt3"]:
+                        st.markdown("#### 프롬프트 예시 3")
+                        st.code(sections["prompt3"], language="markdown")
+                    if sections["tips"]:
+                        st.markdown("#### 추가 팁")
+                        st.markdown(sections["tips"])
+                else:
+                    st.error("프롬프트 생성에 실패했습니다.")
     
     elif generator_type == "🎥 영상 (Sora) 프롬프트 생성기":
         st.title("영상 (Sora) 프롬프트 생성기")
@@ -1007,36 +1070,28 @@ def show_prompt_generator(generator_type):
                 
                 if generated_prompt:
                     st.success("영상 프롬프트가 생성되었습니다!")
-                    
-                    # 초기화
-                    prompt_block = ""
-                    raw_prompt = ""
-                    
-                    # 정리된 프롬프트가 있으면 코드 블록으로 표시
-                    if prompt_block.strip():
-                        st.code(prompt_block.strip(), language="markdown")
-                    elif raw_prompt:
-                        st.code(raw_prompt.strip(), language="markdown")
-                    else:
-                        # 기존 방식으로 추출 시도
-                        try:
-                            for delimiter in ["```", "**프롬프트:**", "*프롬프트:*", "최종 프롬프트:", "딥리서치 프롬프트:"]:
-                                if delimiter in generated_prompt:
-                                    parts = generated_prompt.split(delimiter, 2)
-                                    if len(parts) > 1:
-                                        potential_prompt = parts[1].split("```", 1)[0] if "```" in parts[1] else parts[1]
-                                        if len(potential_prompt.strip()) > 10:  # 최소 길이 확인
-                                            st.code(potential_prompt.strip(), language="markdown")
-                                            break
-                            else:
-                                # 구분자를 찾지 못한 경우 전체 표시
-                                st.code(generated_prompt, language="markdown")
-                        except:
-                            st.code(generated_prompt, language="markdown")
-                    
-                    # 설명 부분 대신 복사 버튼만 표시
-                    st.button("클립보드에 복사", key="copy_video_prompt", 
-                            help="브라우저 설정에 따라 동작이 다를 수 있습니다.")
+                    sections = parse_gemini_sections(generated_prompt)
+                    if sections["title"]:
+                        st.markdown(f"### {sections['title']}")
+                    if sections["summary"]:
+                        st.markdown(sections["summary"])
+                    if sections["elements"]:
+                        st.markdown("#### 프롬프트 요소")
+                        st.markdown(sections["elements"])
+                    if sections["prompt1"]:
+                        st.markdown("#### 프롬프트 예시 1")
+                        st.code(sections["prompt1"], language="markdown")
+                    if sections["prompt2"]:
+                        st.markdown("#### 프롬프트 예시 2")
+                        st.code(sections["prompt2"], language="markdown")
+                    if sections["prompt3"]:
+                        st.markdown("#### 프롬프트 예시 3")
+                        st.code(sections["prompt3"], language="markdown")
+                    if sections["tips"]:
+                        st.markdown("#### 추가 팁")
+                        st.markdown(sections["tips"])
+                else:
+                    st.error("프롬프트 생성에 실패했습니다.")
 
 def extract_main_prompt(text):
     # 코드블록 우선 추출
