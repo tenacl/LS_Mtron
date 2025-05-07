@@ -177,12 +177,12 @@ def generate_prompt(track, topic, purpose=None, sources=None, format=None):
             # 다양한 응답 구조에 대응
             if hasattr(response, "text") and isinstance(response.text, str):
                 return response.text
-            elif hasattr(response, "parts") and isinstance(response.parts, list):
-                return "".join([part.text for part in response.parts if hasattr(part, "text") and isinstance(part.text, str)])
+            elif hasattr(response, "parts") and isinstance(response.parts, list) and response.parts:
+                # 첫 번째 파트만 반환 (중복 방지)
+                return response.parts[0].text if hasattr(response.parts[0], "text") else str(response.parts[0])
             elif hasattr(response, "candidates") and response.candidates:
-                # candidates 구조가 있을 경우
                 parts = response.candidates[0].content.parts
-                return "".join([part.text for part in parts if hasattr(part, "text") and isinstance(part.text, str)])
+                return parts[0].text if hasattr(parts[0], "text") else str(parts[0])
             else:
                 return str(response)
             
