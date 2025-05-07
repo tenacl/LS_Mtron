@@ -941,7 +941,7 @@ def show_prompt_generator(generator_type):
     
     elif generator_type == "🖌️ 이미지 프롬프트 생성기":
         st.title("이미지 프롬프트 생성기")
-        st.subheader("MidJourney, DALL·E 등의 이미지 생성 AI를 위한 프롬프트 생성")
+        st.subheader("이미지 생성 AI를 위한 프롬프트 생성")
         
         # 주제 입력
         topic = st.text_input("주제/대상", placeholder="예: 미래도시, 판타지 풍경, 고양이 초상화 등")
@@ -987,7 +987,17 @@ def show_prompt_generator(generator_type):
                 "전신 샷(Full Body Shot)",
                 "파노라마(Panorama)",
                 "매크로(Macro)",
-                "초점 스태킹(Focus Stacking)"
+                "초점 스태킹(Focus Stacking)",
+                "오버헤드 샷(Overhead Shot)",
+                "틸트 시프트(Tilt-Shift)",
+                "반신 샷(Medium Shot)",
+                "대각선 구도(Diagonal Composition)",
+                "대칭 구도(Symmetrical Composition)",
+                "프레임 속 프레임(Frame within Frame)",
+                "삼등분 구도(Rule of Thirds)",
+                "황금비율(Golden Ratio)",
+                "사선 구도(Dutch Angle)",
+                "실루엣(Silhouette View)"
             ]
             angle = st.selectbox("구도/앵글", angle_options)
             
@@ -1002,7 +1012,17 @@ def show_prompt_generator(generator_type):
                 "컬러풀(Colorful)",
                 "어두운(Dark Tones)",
                 "밝은(Light Tones)",
-                "대비가 강한(High Contrast)"
+                "대비가 강한(High Contrast)",
+                "따뜻한 색조(Warm Tones)",
+                "차가운 색조(Cool Tones)",
+                "청록색 톤(Teal & Orange)",
+                "빈티지(Vintage Colors)",
+                "크리미 색상(Creamy Tones)",
+                "금속성(Metallic)",
+                "그라디언트(Gradient Colors)",
+                "아쿠아(Aqua Tones)",
+                "모노크로매틱(Monochromatic)",
+                "이중톤(Duotone)"
             ]
             color = st.selectbox("색감/색조", color_options)
         
@@ -1018,7 +1038,17 @@ def show_prompt_generator(generator_type):
                 "스플릿 조명(Split Lighting)",
                 "소프트 박스(Soft Box Lighting)",
                 "황금빛 시간(Golden Hour)",
-                "파란 시간(Blue Hour)"
+                "파란 시간(Blue Hour)",
+                "촛불 조명(Candlelight)",
+                "하드 라이트(Hard Light)",
+                "환형 플래시(Ring Light)",
+                "실루엣 조명(Silhouette Lighting)",
+                "키 라이트(Key Light)",
+                "스포트라이트(Spotlight)",
+                "앰비언트 라이트(Ambient Light)",
+                "컬러 젤 라이트(Color Gel Lighting)",
+                "체커보드 라이트(Checkerboard Light)",
+                "반사광(Reflected Light)"
             ]
             light = st.selectbox("조명", light_options)
             
@@ -1033,7 +1063,17 @@ def show_prompt_generator(generator_type):
                 "고요한(Serene)",
                 "혼란스러운(Chaotic)",
                 "감성적인(Emotional)",
-                "놀라운(Surprising)"
+                "놀라운(Surprising)",
+                "우아한(Elegant)",
+                "판타지적(Fantastical)",
+                "초현실적인(Surreal)",
+                "긴장감 있는(Suspenseful)",
+                "미니멀리즘(Minimalistic)",
+                "청량한(Refreshing)",
+                "향수를 불러일으키는(Nostalgic)",
+                "동화적인(Fairytale-like)",
+                "고독한(Solitary)",
+                "활력 넘치는(Vibrant)"
             ]
             mood = st.selectbox("분위기", mood_options)
         
