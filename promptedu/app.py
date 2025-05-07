@@ -162,42 +162,54 @@ def is_quota_exceeded_error(error_msg):
     return any(keyword in error_msg for keyword in ["quota", "rate limit", "exceeded", "limit"])
 
 # Gemini API를 사용한 프롬프트 생성 함수
+def extract_prompt_and_explanation(text):
+    import re
+    # 1. 영어 프롬프트(코드블록, Prompt: 등) 추출
+    code_blocks = re.findall(r"```[a-zA-Z]*\n(.*?)```", text, re.DOTALL)
+    if code_blocks:
+        prompt = code_blocks[0].strip()
+    else:
+        prompt = ""
+        for line in text.splitlines():
+            if line.strip().lower().startswith("prompt:") or "prompt:" in line.lower():
+                prompt = line.split(":", 1)[-1].strip()
+                break
+        if not prompt:
+            english_lines = [l for l in text.splitlines() if re.search(r"[a-zA-Z]", l) and len(l) > 30]
+            prompt = max(english_lines, key=len) if english_lines else text.strip()
+    # 2. 한글 설명(프롬프트가 아닌 부분)
+    explanation = ""
+    for line in text.splitlines():
+        if not re.search(r"[a-zA-Z]", line) and len(line.strip()) > 10:
+            explanation += line.strip() + "\n"
+    return prompt, explanation.strip()
+
 def generate_prompt(track, topic, purpose=None, sources=None, format=None):
     prompt_text = get_prompt_text(track, topic, purpose, sources, format)
-    
-    # 순차적으로 모델 시도
     for i, model_name in enumerate(GEMINI_MODELS):
         try:
             model = genai.GenerativeModel(model_name)
             st.session_state['current_model'] = model_name
-            
-            if i > 0:  # 첫 번째 모델이 아닌 경우 (이전 모델 실패 후)
+            if i > 0:
                 st.toast(f"{GEMINI_MODELS[i-1]} 모델 사용량 초과로 {model_name} 모델로 전환합니다.", icon="⚠️")
-                
             response = model.generate_content(prompt_text)
-            # 다양한 응답 구조에 대응
             if hasattr(response, "text") and isinstance(response.text, str):
-                return extract_main_prompt(response.text)
+                return extract_prompt_and_explanation(response.text)
             elif hasattr(response, "parts") and isinstance(response.parts, list) and response.parts:
-                return extract_main_prompt(response.parts[0].text if hasattr(response.parts[0], "text") else str(response.parts[0]))
+                return extract_prompt_and_explanation(response.parts[0].text if hasattr(response.parts[0], "text") else str(response.parts[0]))
             elif hasattr(response, "candidates") and response.candidates:
                 parts = response.candidates[0].content.parts
-                return extract_main_prompt(parts[0].text if hasattr(parts[0], "text") else str(parts[0]))
+                return extract_prompt_and_explanation(parts[0].text if hasattr(parts[0], "text") else str(parts[0]))
             else:
-                return extract_main_prompt(str(response))
-            
+                return extract_prompt_and_explanation(str(response))
         except Exception as e:
             if i < len(GEMINI_MODELS) - 1 and is_quota_exceeded_error(e):
-                # 다음 모델을 시도하기 위해 계속 진행 (마지막 모델이 아니고 할당량 초과 오류인 경우)
                 continue
             else:
-                # 마지막 모델이거나 할당량 초과가 아닌 다른 오류인 경우
                 st.error(f"프롬프트 생성 중 오류가 발생했습니다: {str(e)}")
-                return None
-    
-    # 모든 모델 시도 실패
+                return None, None
     st.error("모든 모델 시도 후 프롬프트 생성에 실패했습니다.")
-    return None
+    return None, None
 
 # 프롬프트 텍스트 생성 함수 분리 (기존 로직 추출)
 def get_prompt_text(track, topic, purpose=None, sources=None, format=None):
@@ -643,105 +655,22 @@ def show_prompt_generator(generator_type):
                 # 선택된 출처들을 문자열로 변환
                 sources_text = ", ".join(st.session_state.selected_sources)
                 # 프롬프트 생성 함수 호출
-                generated_prompt = generate_prompt("🔧 딥리서치 프롬프트 생성기", topic, purpose, sources_text, result_format)
+                generated_prompt, explanation = generate_prompt(
+                    "🔧 딥리서치 프롬프트 생성기", 
+                    topic, 
+                    purpose, 
+                    sources_text, 
+                    result_format
+                )
                 
                 if generated_prompt:
                     st.success("프롬프트가 생성되었습니다!")
-                    
-                    # 결과 표시 방식 변경 - 최종 프롬프트와 설명 분리해서 표시
-                    prompt_container = st.container(border=True)
-                    with prompt_container:
-                        # 프롬프트 텍스트를 분석하여 코드 블록과 설명 부분 분리
-                        lines = generated_prompt.split('\n')
-                        
-                        prompt_block = ""
-                        explanation_block = ""
-                        in_prompt_block = False
-                        in_explanation_block = False
-                        raw_prompt = ""  # 전체 프롬프트 저장용
-                        
-                        # 마크다운 코드 블록(```) 찾기
-                        start_idx = -1
-                        end_idx = -1
-                        for i, line in enumerate(lines):
-                            if line.strip().startswith("```") and start_idx == -1:
-                                start_idx = i
-                            elif line.strip().startswith("```") and start_idx != -1:
-                                end_idx = i
-                                break
-                        
-                        # 설명 부분 시작 위치 찾기
-                        explanation_start = -1
-                        for i, line in enumerate(lines):
-                            if '📌' in line or '프롬프트 요소 설명' in line or '프롬프트에 대한 설명' in line:
-                                explanation_start = i
-                                break
-                        
-                        # 코드 블록 내용과 설명 추출
-                        if start_idx != -1 and end_idx != -1:
-                            # 코드 블록 내용 추출
-                            prompt_block = '\n'.join(lines[start_idx+1:end_idx])
-                            
-                            # 설명 부분이 찾아지지 않았다면 코드 블록 이후의 내용 전체를 설명으로 간주
-                            if explanation_start == -1:
-                                explanation_start = end_idx + 1
-                            
-                            # 설명 부분 수집
-                            if explanation_start != -1:
-                                explanation_block = '\n'.join(lines[explanation_start:])
-                            else:
-                                # 설명이 없으면 기본 설명 제공
-                                explanation_block = "📌 **프롬프트 요소 설명**\n\n프롬프트 요소에 대한 설명을 생성할 수 없습니다."
-                        else:
-                            # 코드 블록이 없는 경우 (기존 출력은 유지)
-                            # 주요 키워드 찾기
-                            for i, line in enumerate(lines):
-                                if any(keyword in line.lower() for keyword in ['research', 'analyze', 'investigate', '조사', '분석', '정보']):
-                                    if not line.startswith('"') and not line.startswith('→'):  # 설명 부분 제외
-                                        raw_prompt = line
-                                        break
-                            
-                            # 설명 부분 찾기
-                            if explanation_start != -1:
-                                explanation_block = '\n'.join(lines[explanation_start:])
-                            else:
-                                # 프롬프트에 대한 설명 패턴 찾기
-                                for i, line in enumerate(lines):
-                                    if '→' in line or ('주요' in line and '대상' in line) or ('카메라' in line and '설정' in line):
-                                        explanation_start = max(0, i-1)  # 설명 시작 가능성이 있는 위치
-                                        break
-                                
-                                if explanation_start != -1:
-                                    explanation_block = '\n'.join(lines[explanation_start:])
-                                else:
-                                    # 설명이 없으면 간단한 설명 생성
-                                    explanation_block = "📌 **프롬프트 요소 설명**\n\n프롬프트 요소에 대한 설명을 생성할 수 없습니다."
-                        
-                        # 정리된 프롬프트가 있으면 코드 블록으로 표시
-                        if prompt_block.strip():
-                            st.code(prompt_block.strip(), language="markdown")
-                        elif raw_prompt:
-                            st.code(raw_prompt.strip(), language="markdown")
-                        else:
-                            # 기존 방식으로 추출 시도
-                            try:
-                                for delimiter in ["```", "**프롬프트:**", "*프롬프트:*", "최종 프롬프트:", "딥리서치 프롬프트:"]:
-                                    if delimiter in generated_prompt:
-                                        parts = generated_prompt.split(delimiter, 2)
-                                        if len(parts) > 1:
-                                            potential_prompt = parts[1].split("```", 1)[0] if "```" in parts[1] else parts[1]
-                                            if len(potential_prompt.strip()) > 10:  # 최소 길이 확인
-                                                st.code(potential_prompt.strip(), language="markdown")
-                                                break
-                                else:
-                                    # 구분자를 찾지 못한 경우 전체 표시
-                                    st.code(generated_prompt, language="markdown")
-                            except:
-                                st.code(generated_prompt, language="markdown")
-                    
-                    # 복사 버튼
-                    st.button("클립보드에 복사", key="copy_deepresearch_prompt", 
-                            help="브라우저 설정에 따라 동작이 다를 수 있습니다.")
+                    st.code(generated_prompt, language="markdown")
+                    if explanation:
+                        st.markdown("**설명:**")
+                        st.markdown(explanation)
+                else:
+                    st.error("프롬프트 생성에 실패했습니다.")
     
     elif generator_type == "🖌️ 이미지 프롬프트 생성기":
         st.title("이미지 프롬프트 생성기")
