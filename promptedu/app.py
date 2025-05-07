@@ -4,6 +4,7 @@ import json
 import os
 import sys
 from pathlib import Path
+import re
 
 # 현재 디렉토리를 sys.path에 추가하여 모듈을 찾을 수 있도록 함
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -176,15 +177,14 @@ def generate_prompt(track, topic, purpose=None, sources=None, format=None):
             response = model.generate_content(prompt_text)
             # 다양한 응답 구조에 대응
             if hasattr(response, "text") and isinstance(response.text, str):
-                return response.text
+                return extract_main_prompt(response.text)
             elif hasattr(response, "parts") and isinstance(response.parts, list) and response.parts:
-                # 첫 번째 파트만 반환 (중복 방지)
-                return response.parts[0].text if hasattr(response.parts[0], "text") else str(response.parts[0])
+                return extract_main_prompt(response.parts[0].text if hasattr(response.parts[0], "text") else str(response.parts[0]))
             elif hasattr(response, "candidates") and response.candidates:
                 parts = response.candidates[0].content.parts
-                return parts[0].text if hasattr(parts[0], "text") else str(parts[0])
+                return extract_main_prompt(parts[0].text if hasattr(parts[0], "text") else str(parts[0]))
             else:
-                return str(response)
+                return extract_main_prompt(str(response))
             
         except Exception as e:
             if i < len(GEMINI_MODELS) - 1 and is_quota_exceeded_error(e):
@@ -1108,6 +1108,24 @@ def show_prompt_generator(generator_type):
                     # 설명 부분 대신 복사 버튼만 표시
                     st.button("클립보드에 복사", key="copy_video_prompt", 
                             help="브라우저 설정에 따라 동작이 다를 수 있습니다.")
+
+def extract_main_prompt(text):
+    # 코드블록 우선 추출
+    code_blocks = re.findall(r"```[a-zA-Z]*\n(.*?)```", text, re.DOTALL)
+    if code_blocks:
+        return code_blocks[0].strip()
+    # 'Prompt:' 또는 '**프롬프트:**' 등으로 시작하는 줄 추출
+    for line in text.splitlines():
+        if line.strip().lower().startswith("prompt:") or "prompt:" in line.lower():
+            return line.split(":", 1)[-1].strip()
+        if "scene" in line.lower() and len(line) > 30:
+            return line.strip()
+    # 영어로 된 가장 긴 문장 추출 (예시)
+    english_lines = [l for l in text.splitlines() if re.search(r"[a-zA-Z]", l) and len(l) > 30]
+    if english_lines:
+        return max(english_lines, key=len)
+    # 기본: 전체 반환
+    return text.strip()
 
 # 메인 함수
 def main():
