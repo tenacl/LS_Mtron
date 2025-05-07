@@ -230,7 +230,7 @@ def get_prompt_text(track, topic, purpose=None, sources=None, format=None):
         추가 지시사항: {purpose.split('추가 지시사항: ')[1] if '추가 지시사항: ' in purpose else '없음'}
 
         ## 출력 형식:
-        다음 형식으로 이미지 생성 AI를 위한 프롬프트를 작성하세요:
+        다음 형식으로 이미지 생성 AI를 위한 프롬프트를 작성하세요. 하나의 영어 문장으로 된 최종 프롬프트만 출력하세요:
 
         ```
         ## [주제] 이미지 생성 AI 프롬프트
@@ -248,7 +248,7 @@ def get_prompt_text(track, topic, purpose=None, sources=None, format=None):
 
         **색감/톤:** [색감과 색조에 대한 설명]
 
-        **프롬프트 요소:** [사용된 주요 키워드와 요소들 나열]
+        **프롬프트 요소:** [사용된 주요 키워드와 요소들 나열, 쉼표로 구분된 형태로]
 
         **프롬프트 예시 1 (간결):**
         [주요 요소만 포함한 짧고 간결한 영어 프롬프트, 약 1-2문장]
@@ -267,10 +267,13 @@ def get_prompt_text(track, topic, purpose=None, sources=None, format=None):
 
         ## 지침:
         1. 모든 섹션을 상세하게 작성하고, 사용자가 제공한 모든 설정 요소를 반영해야 합니다.
-        2. 프롬프트 예시는 간결, 상세, 강조의 세 가지 버전으로 각각 다른 복잡도로 작성합니다.
-        3. 추가 팁에는 해당 주제와 설정에 맞는 실질적인 이미지 생성 조언을 포함합니다.
-        4. 모든 영어 프롬프트는 MidJourney, DALL·E 등 이미지 생성 AI에 바로 입력할 수 있는 형식으로 작성합니다.
-        5. 전체적으로 구조화된 정보를 제공하면서도 창의적이고 영감을 주는 내용을 담아야 합니다.
+        2. 프롬프트 요소는 반드시 쉼표로 구분된 키워드 목록 형태로 작성하세요.
+        3. 프롬프트 예시는 반드시 영어로 작성하고, 각 예시는 다른 복잡도와 길이를 가져야 합니다.
+        4. 프롬프트 예시 1은 간결하게, 프롬프트 예시 2는 상세하게, 프롬프트 예시 3은 창의적이고 강조된 표현으로 작성하세요.
+        5. 모든 영어 프롬프트는 MidJourney, DALL·E 등 이미지 생성 AI에 바로 입력할 수 있는 형식으로 작성합니다.
+        6. 각 영어 프롬프트는 문장 형태로 작성하며, 마크다운이나 기타 포맷 없이 순수한 텍스트만 포함해야 합니다.
+        7. 프롬프트 예시 1, 2, 3은 반드시 완전한 영어 문장으로 작성하고, 다른 설명이나 한글은 포함하지 마세요.
+        8. 모든 프롬프트 예시는 독립적인 완전한 문장이어야 하며, "예시:", "프롬프트:", "Prompt:" 같은 접두어는 붙이지 마세요.
 
         출력에는 반드시 위에 지정한 출력 형식의 모든 섹션을 포함해야 하며, 각 섹션은 충분히 상세하게 작성되어야 합니다.
         """
@@ -295,7 +298,7 @@ def get_prompt_text(track, topic, purpose=None, sources=None, format=None):
         추가 지시사항: {purpose.split('추가 지시사항: ')[1] if '추가 지시사항: ' in purpose else '없음'}
 
         ## 출력 형식:
-        다음 형식으로 영상 생성 AI를 위한 프롬프트를 작성하세요:
+        다음 형식으로 영상 생성 AI를 위한 프롬프트를 작성하세요. 순수한 영어 문장으로 된 최종 프롬프트만 출력하세요:
 
         ```
         ## [주제] 영상 생성 AI 프롬프트
@@ -315,6 +318,8 @@ def get_prompt_text(track, topic, purpose=None, sources=None, format=None):
 
         **시간:** [시간대 + 추가 설명]
 
+        **프롬프트 요소:** [사용된 주요 키워드와 요소들 나열, 쉼표로 구분된 형태로]
+
         **프롬프트 예시 1 (간결):**
         [주요 요소만 포함한 짧고 간결한 영어 프롬프트, 약 1-2문장]
 
@@ -333,10 +338,13 @@ def get_prompt_text(track, topic, purpose=None, sources=None, format=None):
 
         ## 지침:
         1. 모든 섹션을 상세하게 작성하고, 사용자가 제공한 모든 설정 요소를 반영해야 합니다.
-        2. 프롬프트 예시는 간결, 상세, 강조의 세 가지 버전으로 각각 다른 복잡도로 작성합니다.
-        3. 추가 팁에는 해당 주제와 설정에 맞는 실질적인 영상 생성 조언을 포함합니다.
-        4. 모든 영어 프롬프트는 Sora 등의 영상 생성 AI에 바로 입력할 수 있는 형식으로 작성합니다.
-        5. 전체적으로 구조화된 정보를 제공하면서도 창의적이고 영감을 주는 내용을 담아야 합니다.
+        2. 프롬프트 요소는 반드시 쉼표로 구분된 키워드 목록 형태로 작성하세요.
+        3. 프롬프트 예시는 반드시 영어로 작성하고, 각 예시는 다른 복잡도와 길이를 가져야 합니다.
+        4. 프롬프트 예시 1은 간결하게, 프롬프트 예시 2는 상세하게, 프롬프트 예시 3은 창의적이고 강조된 표현으로 작성하세요.
+        5. 모든 영어 프롬프트는 Sora, Runway 등의 영상 생성 AI에 바로 입력할 수 있는 형식으로 작성합니다.
+        6. 각 영어 프롬프트는 문장 형태로 작성하며, 마크다운이나 기타 포맷 없이 순수한 텍스트만 포함해야 합니다.
+        7. 프롬프트 예시 1, 2, 3은 반드시 완전한 영어 문장으로 작성하고, 다른 설명이나 한글은 포함하지 마세요.
+        8. 모든 프롬프트 예시는 독립적인 완전한 문장이어야 하며, "예시:", "프롬프트:", "Prompt:" 같은 접두어는 붙이지 마세요.
 
         ## 영상 프롬프트 작성 시 고려할 요소:
         - 장면의 전체적인 흐름과 스토리텔링
@@ -597,37 +605,37 @@ def parse_gemini_sections(text):
                 buffer = []
             current = "title"
             buffer.append(line)
-        elif ("프롬프트 예시 1" in line or "간결" in line_lower) and ("**프롬프트 예시 1" in line or "**간결" in line_lower or "(간결)" in line_lower):
+        elif any(marker in line_lower for marker in ["프롬프트 예시 1", "예시 1", "간결", "(간결)"]) and not any(marker in line_lower for marker in ["프롬프트 예시 2", "예시 2"]):
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
             current = "prompt1"
             buffer.append(line)
-        elif ("프롬프트 예시 2" in line or "상세" in line_lower) and ("**프롬프트 예시 2" in line or "**상세" in line_lower or "(상세)" in line_lower):
+        elif any(marker in line_lower for marker in ["프롬프트 예시 2", "예시 2", "상세", "(상세)"]) and not any(marker in line_lower for marker in ["프롬프트 예시 3", "예시 3"]):
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
             current = "prompt2"
             buffer.append(line)
-        elif ("프롬프트 예시 3" in line or "강조" in line_lower) and ("**프롬프트 예시 3" in line or "**강조" in line_lower or "(강조)" in line_lower):
+        elif any(marker in line_lower for marker in ["프롬프트 예시 3", "예시 3", "강조", "(강조)"]):
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
             current = "prompt3"
             buffer.append(line)
-        elif "추가 팁" in line and "**추가 팁" in line:
+        elif any(marker in line_lower for marker in ["추가 팁", "* [이미지", "* [영상"]):
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
             current = "tips"
             buffer.append(line)
-        elif ("프롬프트 요소" in line or "요소:" in line) and ("**프롬프트 요소" in line or "**요소:" in line):
+        elif any(marker in line_lower for marker in ["프롬프트 요소", "요소:", "elements:"]):
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
             current = "elements"
             buffer.append(line)
-        elif ("한글 요약" in line or "요약" in line or "설명" in line or "Summary" in line_lower) and not current == "prompt1" and not current == "prompt2" and not current == "prompt3":
+        elif any(marker in line_lower for marker in ["한글 요약", "주제:", "요약", "설명", "summary"]) and current != "prompt1" and current != "prompt2" and current != "prompt3":
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
@@ -652,20 +660,48 @@ def parse_gemini_sections(text):
             prompt_lines = []
             in_prompt = False
             
-            for line in lines:
-                # 섹션 제목 라인 건너뛰기
-                if f"**프롬프트 예시" in line or "(간결)" in line or "(상세)" in line or "(강조)" in line:
+            for i, line in enumerate(lines):
+                line_lower = line.lower().strip()
+                
+                # 프롬프트 시작 표시 찾기 (제목 라인은 건너뛰기)
+                if any(marker in line_lower for marker in ["프롬프트 예시", "예시", "간결", "상세", "강조"]):
                     in_prompt = True
                     continue
                 
-                if in_prompt and line.strip() and re.search(r"[a-zA-Z]", line):
-                    prompt_lines.append(line)
+                # 영어로 된 라인만 수집
+                if in_prompt and line.strip() and re.search(r"[a-zA-Z]", line) and len(re.findall(r"[a-zA-Z]", line)) > 5:
+                    # 라인 시작에 있는 불필요한 접두어 제거
+                    cleaned_line = re.sub(r"^[*\-\s]*(?:prompt:|example:)?", "", line).strip()
+                    # 코드 블록 마커 제거
+                    cleaned_line = re.sub(r"^```.*$|```$", "", cleaned_line).strip()
+                    
+                    if cleaned_line:
+                        prompt_lines.append(cleaned_line)
+                    
+                # 다음 섹션 시작 감지
+                elif in_prompt and i > 0 and (any(marker in line_lower for marker in ["프롬프트 예시", "추가 팁"]) or line_lower.startswith("*")):
+                    break
             
             if prompt_lines:
                 sections[section] = "\n".join(prompt_lines)
     
+    # 프롬프트 요소 섹션 추출 및 정리
+    if sections["elements"]:
+        lines = sections["elements"].splitlines()
+        element_lines = []
+        
+        for line in lines:
+            if "프롬프트 요소" in line or "요소:" in line:
+                continue
+            cleaned_line = line.strip()
+            if cleaned_line:
+                element_lines.append(cleaned_line)
+        
+        if element_lines:
+            sections["elements"] = "\n".join(element_lines)
+    
     # 섹션이 하나도 파싱되지 않았다면 전체 텍스트를 summary에 넣기
-    if not any(sections.values()):
+    if not any(value for value in sections.values() if value.strip()):
         sections["summary"] = text
         
     return sections
