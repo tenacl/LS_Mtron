@@ -174,7 +174,17 @@ def generate_prompt(track, topic, purpose=None, sources=None, format=None):
                 st.toast(f"{GEMINI_MODELS[i-1]} 모델 사용량 초과로 {model_name} 모델로 전환합니다.", icon="⚠️")
                 
             response = model.generate_content(prompt_text)
-            return response.text
+            # 다양한 응답 구조에 대응
+            if hasattr(response, "text") and isinstance(response.text, str):
+                return response.text
+            elif hasattr(response, "parts") and isinstance(response.parts, list):
+                return "".join([part.text for part in response.parts if hasattr(part, "text") and isinstance(part.text, str)])
+            elif hasattr(response, "candidates") and response.candidates:
+                # candidates 구조가 있을 경우
+                parts = response.candidates[0].content.parts
+                return "".join([part.text for part in parts if hasattr(part, "text") and isinstance(part.text, str)])
+            else:
+                return str(response)
             
         except Exception as e:
             if i < len(GEMINI_MODELS) - 1 and is_quota_exceeded_error(e):
