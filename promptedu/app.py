@@ -618,7 +618,7 @@ def parse_gemini_sections(text):
                 buffer = []
             current = "tips"
             buffer.append(line)
-        elif "프롬프트 요소" in line or "요소" in line and "Elements" in line:
+        elif "프롬프트 요소" in line or "요소:" in line:
             if buffer and current:
                 sections[current] = "\n".join(buffer).strip()
                 buffer = []
@@ -796,45 +796,124 @@ def show_prompt_generator(generator_type):
                 
                 if generated_prompt:
                     st.success("프롬프트가 생성되었습니다!")
-                    sections = parse_gemini_sections(generated_prompt)
                     
-                    # 섹션이 제대로 파싱됐는지 확인
-                    has_parsed_sections = any(key != "summary" and sections[key] for key in sections)
+                    # 영상 프롬프트처럼 직접 파싱하여 섹션별로 구분해서 표시
+                    lines = generated_prompt.splitlines()
+                    current_section = None
+                    section_content = []
                     
-                    if has_parsed_sections:
-                        # 정상적으로 파싱된 경우
-                        if sections["title"]:
-                            st.markdown(f"### {sections['title']}")
-                        if sections["summary"]:
-                            st.markdown(sections["summary"])
-                        if sections["elements"]:
-                            st.markdown("#### 프롬프트 요소")
-                            st.markdown(sections["elements"])
-                        if sections["prompt1"]:
-                            st.markdown("#### 프롬프트 예시 1")
-                            st.code(sections["prompt1"], language="markdown")
-                        if sections["prompt2"]:
-                            st.markdown("#### 프롬프트 예시 2")
-                            st.code(sections["prompt2"], language="markdown")
-                        if sections["prompt3"]:
-                            st.markdown("#### 프롬프트 예시 3")
-                            st.code(sections["prompt3"], language="markdown")
-                        if sections["tips"]:
-                            st.markdown("#### 추가 팁")
-                            st.markdown(sections["tips"])
-                    else:
-                        # 파싱이 실패한 경우 전체 내용을 코드 블록으로 표시
-                        st.markdown("### 생성된 프롬프트")
+                    # 각 줄을 살펴보면서 섹션 파악
+                    for line in lines:
+                        line = line.strip()
+                        if not line:
+                            continue
+                            
+                        if "주제:" in line or "주제 :" in line:
+                            if current_section:
+                                # 이전 섹션 출력
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "주제"
+                        elif "스타일" in line or "시각적 특징" in line:
+                            if current_section:
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "스타일"
+                        elif "카메라" in line or "앵글/샷:" in line or "구도" in line:
+                            if current_section:
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "카메라 설정"
+                        elif "분위기" in line or "조명:" in line:
+                            if current_section:
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "분위기/조명"
+                        elif "시간:" in line or "시간 :" in line:
+                            if current_section:
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "시간"
+                        elif "프롬프트 요소" in line or "요소:" in line:
+                            if current_section:
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "프롬프트 요소"
+                        elif "프롬프트 예시 1" in line or "간결" in line:
+                            if current_section:
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "프롬프트 예시 1"
+                            continue
+                        elif "프롬프트 예시 2" in line or "상세" in line:
+                            if current_section and section_content:
+                                if current_section == "프롬프트 예시 1":
+                                    st.markdown(f"### {current_section}")
+                                    st.code("\n".join(section_content), language="markdown")
+                                else:
+                                    st.markdown(f"### {current_section}")
+                                    st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "프롬프트 예시 2"
+                            continue
+                        elif "프롬프트 예시 3" in line or "강조" in line:
+                            if current_section and section_content:
+                                if current_section == "프롬프트 예시 2":
+                                    st.markdown(f"### {current_section}")
+                                    st.code("\n".join(section_content), language="markdown")
+                                else:
+                                    st.markdown(f"### {current_section}")
+                                    st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "프롬프트 예시 3"
+                            continue
+                        elif "추가 팁" in line or "추가팁" in line:
+                            if current_section and section_content:
+                                if current_section == "프롬프트 예시 3":
+                                    st.markdown(f"### {current_section}")
+                                    st.code("\n".join(section_content), language="markdown")
+                                else:
+                                    st.markdown(f"### {current_section}")
+                                    st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "추가 팁"
+                            continue
                         
-                        # 전체 프롬프트 텍스트를 코드 블록으로 표시
-                        st.code(generated_prompt, language="markdown")
-                        
-                        # 영어 프롬프트 부분을 추출해 코드 블록으로 표시
+                        # 현재 줄을 현재 섹션에 추가
+                        section_content.append(line)
+                    
+                    # 마지막 섹션 출력
+                    if current_section and section_content:
+                        if current_section in ["프롬프트 예시 1", "프롬프트 예시 2", "프롬프트 예시 3"]:
+                            st.markdown(f"### {current_section}")
+                            st.code("\n".join(section_content), language="markdown")
+                        else:
+                            st.markdown(f"### {current_section}")
+                            st.markdown("\n".join(section_content))
+                    
+                    # 어떤 섹션도 파싱되지 않았을 경우
+                    if not current_section:
+                        # 영어 프롬프트만 추출해서 코드 블록으로 표시
                         english_prompts = extract_english_prompts(generated_prompt)
                         if english_prompts:
-                            st.markdown("### 프롬프트 예시")
-                            for i, prompt in enumerate(english_prompts, 1):
-                                st.code(prompt, language="markdown")
+                            st.markdown("### 프롬프트 예시 1")
+                            st.code(english_prompts[0], language="markdown")
+                            if len(english_prompts) > 1:
+                                st.markdown("### 프롬프트 예시 2")
+                                st.code(english_prompts[1], language="markdown")
+                            if len(english_prompts) > 2:
+                                st.markdown("### 프롬프트 예시 3")
+                                st.code(english_prompts[2], language="markdown")
+                        else:
+                            st.markdown("### 생성된 프롬프트")
+                            st.code(generated_prompt, language="markdown")
                 else:
                     st.error("프롬프트 생성에 실패했습니다.")
     
@@ -983,45 +1062,124 @@ def show_prompt_generator(generator_type):
                 
                 if generated_prompt:
                     st.success("이미지 프롬프트가 생성되었습니다!")
-                    sections = parse_gemini_sections(generated_prompt)
                     
-                    # 섹션이 제대로 파싱됐는지 확인
-                    has_parsed_sections = any(key != "summary" and sections[key] for key in sections)
+                    # 영상 프롬프트처럼 직접 파싱하여 섹션별로 구분해서 표시
+                    lines = generated_prompt.splitlines()
+                    current_section = None
+                    section_content = []
                     
-                    if has_parsed_sections:
-                        # 정상적으로 파싱된 경우
-                        if sections["title"]:
-                            st.markdown(f"### {sections['title']}")
-                        if sections["summary"]:
-                            st.markdown(sections["summary"])
-                        if sections["elements"]:
-                            st.markdown("#### 프롬프트 요소")
-                            st.markdown(sections["elements"])
-                        if sections["prompt1"]:
-                            st.markdown("#### 프롬프트 예시 1")
-                            st.code(sections["prompt1"], language="markdown")
-                        if sections["prompt2"]:
-                            st.markdown("#### 프롬프트 예시 2")
-                            st.code(sections["prompt2"], language="markdown")
-                        if sections["prompt3"]:
-                            st.markdown("#### 프롬프트 예시 3")
-                            st.code(sections["prompt3"], language="markdown")
-                        if sections["tips"]:
-                            st.markdown("#### 추가 팁")
-                            st.markdown(sections["tips"])
-                    else:
-                        # 파싱이 실패한 경우 전체 내용을 코드 블록으로 표시
-                        st.markdown("### 생성된 프롬프트")
+                    # 각 줄을 살펴보면서 섹션 파악
+                    for line in lines:
+                        line = line.strip()
+                        if not line:
+                            continue
+                            
+                        if "주제:" in line or "주제 :" in line:
+                            if current_section:
+                                # 이전 섹션 출력
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "주제"
+                        elif "스타일" in line or "시각적 특징" in line:
+                            if current_section:
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "스타일"
+                        elif "카메라" in line or "앵글/샷:" in line or "구도" in line:
+                            if current_section:
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "카메라 설정"
+                        elif "분위기" in line or "조명:" in line:
+                            if current_section:
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "분위기/조명"
+                        elif "시간:" in line or "시간 :" in line:
+                            if current_section:
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "시간"
+                        elif "프롬프트 요소" in line or "요소:" in line:
+                            if current_section:
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "프롬프트 요소"
+                        elif "프롬프트 예시 1" in line or "간결" in line:
+                            if current_section:
+                                st.markdown(f"### {current_section}")
+                                st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "프롬프트 예시 1"
+                            continue
+                        elif "프롬프트 예시 2" in line or "상세" in line:
+                            if current_section and section_content:
+                                if current_section == "프롬프트 예시 1":
+                                    st.markdown(f"### {current_section}")
+                                    st.code("\n".join(section_content), language="markdown")
+                                else:
+                                    st.markdown(f"### {current_section}")
+                                    st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "프롬프트 예시 2"
+                            continue
+                        elif "프롬프트 예시 3" in line or "강조" in line:
+                            if current_section and section_content:
+                                if current_section == "프롬프트 예시 2":
+                                    st.markdown(f"### {current_section}")
+                                    st.code("\n".join(section_content), language="markdown")
+                                else:
+                                    st.markdown(f"### {current_section}")
+                                    st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "프롬프트 예시 3"
+                            continue
+                        elif "추가 팁" in line or "추가팁" in line:
+                            if current_section and section_content:
+                                if current_section == "프롬프트 예시 3":
+                                    st.markdown(f"### {current_section}")
+                                    st.code("\n".join(section_content), language="markdown")
+                                else:
+                                    st.markdown(f"### {current_section}")
+                                    st.markdown("\n".join(section_content))
+                                section_content = []
+                            current_section = "추가 팁"
+                            continue
                         
-                        # 전체 프롬프트 텍스트를 코드 블록으로 표시
-                        st.code(generated_prompt, language="markdown")
-                        
-                        # 영어 프롬프트 부분을 추출해 코드 블록으로 표시
+                        # 현재 줄을 현재 섹션에 추가
+                        section_content.append(line)
+                    
+                    # 마지막 섹션 출력
+                    if current_section and section_content:
+                        if current_section in ["프롬프트 예시 1", "프롬프트 예시 2", "프롬프트 예시 3"]:
+                            st.markdown(f"### {current_section}")
+                            st.code("\n".join(section_content), language="markdown")
+                        else:
+                            st.markdown(f"### {current_section}")
+                            st.markdown("\n".join(section_content))
+                    
+                    # 어떤 섹션도 파싱되지 않았을 경우
+                    if not current_section:
+                        # 영어 프롬프트만 추출해서 코드 블록으로 표시
                         english_prompts = extract_english_prompts(generated_prompt)
                         if english_prompts:
-                            st.markdown("### 프롬프트 예시")
-                            for i, prompt in enumerate(english_prompts, 1):
-                                st.code(prompt, language="markdown")
+                            st.markdown("### 프롬프트 예시 1")
+                            st.code(english_prompts[0], language="markdown")
+                            if len(english_prompts) > 1:
+                                st.markdown("### 프롬프트 예시 2")
+                                st.code(english_prompts[1], language="markdown")
+                            if len(english_prompts) > 2:
+                                st.markdown("### 프롬프트 예시 3")
+                                st.code(english_prompts[2], language="markdown")
+                        else:
+                            st.markdown("### 생성된 프롬프트")
+                            st.code(generated_prompt, language="markdown")
                 else:
                     st.error("프롬프트 생성에 실패했습니다.")
     
