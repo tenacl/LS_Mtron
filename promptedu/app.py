@@ -710,7 +710,7 @@ def show_prompt_generator(generator_type):
                 # 선택된 출처들을 문자열로 변환
                 sources_text = ", ".join(st.session_state.selected_sources)
                 # 프롬프트 생성 함수 호출
-                generated_prompt, explanation = generate_prompt(
+                generated_prompt, _ = generate_prompt(
                     "🔧 딥리서치 프롬프트 생성기", 
                     topic, 
                     purpose, 
@@ -880,7 +880,7 @@ def show_prompt_generator(generator_type):
                 additional_options_text = ", ".join(additional_params)
                 
                 # 프롬프트 생성 함수 호출
-                generated_prompt = generate_prompt(
+                generated_prompt, _ = generate_prompt(
                     "🖌️ 이미지 프롬프트 생성기", 
                     topic, 
                     f"스타일: {style}, 구도: {angle}, 색감: {color}, 조명: {light}, 분위기: {mood}, 추가 옵션: {additional_options_text}, 추가 지시사항: {additional_instructions}"
@@ -1062,7 +1062,7 @@ def show_prompt_generator(generator_type):
                 
             with st.spinner("영상 프롬프트를 생성 중입니다..."):
                 # 프롬프트 생성 함수 호출
-                generated_prompt = generate_prompt(
+                generated_prompt, _ = generate_prompt(
                     "🎥 영상 (Sora) 프롬프트 생성기", 
                     topic, 
                     f"스타일: {style}, 카메라 앵글: {shot}, 카메라 움직임: {movement}, 조명: {light}, 분위기: {mood}, 시간: {time_setting}, 추가 지시사항: {additional_instructions}"
